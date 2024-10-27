@@ -25,35 +25,35 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$capabilities = array(
-    'block/catquiz_feedbackwizard:view' => array(
+$capabilities =[
+    'block/catquiz_feedbackwizard:view' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_BLOCK,
-        'archetypes' => array(
+        'archetypes' => [
             'manager' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'teacher' => CAP_PREVENT,
             'student' => CAP_PREVENT,
-        ),
-    ),
-    'block/catquiz_feedbackwizard:addinstance' => array(
+        ],
+    ],
+    'block/catquiz_feedbackwizard:addinstance' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_SYSTEM,
-        'archetypes' => array(
+        'archetypes' => [
             'manager' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'teacher' => CAP_PREVENT,
             'student' => CAP_PREVENT,
-        ),
-    ),
-    'block/catquiz_feedbackwizard:myaddinstance' => array(
+        ],
+    ],
+    'block/catquiz_feedbackwizard:myaddinstance' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_USER,
-        'archetypes' => array(
+        'archetypes' => [
             'manager' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'teacher' => CAP_PREVENT,
             'student' => CAP_PREVENT,
-        ),
-    ),
+        ],
+    ],
 );

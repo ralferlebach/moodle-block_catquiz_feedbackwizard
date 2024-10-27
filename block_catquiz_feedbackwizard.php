@@ -81,8 +81,9 @@ class block_catquiz_feedbackwizard extends block_base {
             $this->content->text = $this->config->text;
         } else {
             $this->content->text = "Test";
-            $this->content->text = '<img src="' . $imagepath . '" alt="Beschreibung des Bildes" style="max-width:100%; height:auto;" />';
-            $this->content->text .= '<p>Please define the content text in /blocks/catquiz_quizsettingwizard/block_catquiz_quizsettingwizard.php.</p>';
+            $this->content->text = '<img src="' . $imagepath . '" alt="Beschreibung des Bildes" style="max-width:100%; 
+                height:auto;" />';
+            $this->content->text .= '<p>Please define the content text in /blocks/catquiz_feedbackwizard.php.</p>';
         }
 
         // Rendering der Items und Icons.
@@ -96,7 +97,7 @@ class block_catquiz_feedbackwizard extends block_base {
         return $this->content;
     }
 
-    public function _self_test() {
+    public function self_test() {
 
         return true;
     }
@@ -139,7 +140,7 @@ class block_catquiz_feedbackwizard extends block_base {
      *
      * @return string[] Array of pages and permissions.
      */
-     public function applicable_formats() {
+    public function applicable_formats() {
         return [
                 'admin' => false,
                 'site-index' => false,
