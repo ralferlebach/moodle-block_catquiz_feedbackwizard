@@ -25,4 +25,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'CAT Feedback Wizard';
+$string['pluginname']               = 'CAT Feedback Wizard';
+$string['status:ready-header']      = 'CAT quiz feedbacks all set up';
+$string['status:ready-hint']        = 'All feedbacks for the selected CAT quizzes have been successfully set up. 
+    You may now delete this block or hide it in order to make changes later on.';
+$string['status:notests-header']    = 'There are no CAT quizzes in this course';
+$string['status:notests-hint']      = 'Please add at least one adaptive quiz to this course with the catquiz model to start with.';
+$string['status:ready-header']      = 'There are CAT quizzes in this course';
+$string['status:ready-hint']        = 'Let\'s start with setting up fantastic feedbacks for them!';
