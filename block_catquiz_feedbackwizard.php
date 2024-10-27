@@ -68,11 +68,11 @@ class block_catquiz_feedbackwizard extends block_base {
         $this->content->items[] = '<a href="https://moodle.org/community">Moodle Community</a>';
 
         $this->content->icons = [];
-        $this->content->icons[] = '<img src="' . $this->get_url('icons/add.svg') . '" 
+        $this->content->icons[] = '<img src="' . $this->get_url('icons/add.svg') . '"
             style="width:16px; height:16px; vertical-align:middle;" />';
-        $this->content->icons[] = '<img src="' . $this->get_url('icons/edit.svg') . '" 
+        $this->content->icons[] = '<img src="' . $this->get_url('icons/edit.svg') . '"
             style="width:16px; height:16px; vertical-align:middle;" />';
-        $this->content->icons[] = '<img src="' . $this->get_url('icons/delete.svg') . '" 
+        $this->content->icons[] = '<img src="' . $this->get_url('icons/delete.svg') . '"
             style="width:16px; height:16px; vertical-align:middle;" />';
 
         $this->content->footer = 'FOOTER';
@@ -81,7 +81,7 @@ class block_catquiz_feedbackwizard extends block_base {
             $this->content->text = $this->config->text;
         } else {
             $this->content->text = "Test";
-            $this->content->text = '<img src="' . $imagepath . '" alt="Beschreibung des Bildes" style="max-width:100%; 
+            $this->content->text = '<img src="' . $imagepath . '" alt="Beschreibung des Bildes" style="max-width:100%;
                 height:auto;" />';
             $this->content->text .= '<p>Please define the content text in /blocks/catquiz_feedbackwizard.php.</p>';
         }
@@ -93,7 +93,7 @@ class block_catquiz_feedbackwizard extends block_base {
             $this->content->text .= '<li>' . $icon . ' ' . $item . '</li>';
         }
         $this->content->text .= '</ul>';
-        
+
         return $this->content;
     }
 
@@ -101,7 +101,7 @@ class block_catquiz_feedbackwizard extends block_base {
 
         return true;
     }
-    
+
     /**
      * Defines configuration data.
      *
@@ -149,13 +149,13 @@ class block_catquiz_feedbackwizard extends block_base {
                 'my' => false,
         ];
     }
-  
+
     /**
      * Gives the path of a file in block folder
      *
      * @param string $relativepath relative path
      * @return string URL of the full path
-     */  
+     */
     private function get_url(string $relativepath = ''): string {
         global $CFG;
         return $CFG->wwwroot . '/blocks/catquiz_feedbackwizard/' . $relativepath;
