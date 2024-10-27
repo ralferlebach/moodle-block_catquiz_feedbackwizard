@@ -25,7 +25,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$capabilities =[
+$capabilities = [
     'block/catquiz_feedbackwizard:view' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_BLOCK,
