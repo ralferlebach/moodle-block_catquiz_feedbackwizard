@@ -17,7 +17,7 @@
 /**
  * Plugin upgrade steps are defined here.
  *
- * @package     block_catquiz_quizsettingwizard
+ * @package     block_catquiz_feedbackwizard
  * @category    upgrade
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,7 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__.'/upgradelib.php');
 
 /**
- * Execute block_catquiz_quizsettingwizard upgrade from the given old version.
+ * Execute block_catquiz_feedbackwizard upgrade from the given old version.
  *
  * @param int $oldversion
  * @return bool
