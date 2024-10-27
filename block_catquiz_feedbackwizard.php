@@ -30,7 +30,7 @@ class block_catquiz_feedbackwizard extends block_base {
      */
     public function init() {
         // Needed by Moodle to differentiate between blocks.
-        $this->title = get_string('pluginname', 'block_catquiz_quizsettingwizard');
+        $this->title = get_string('pluginname', 'block_catquiz_feedbackwizard');
     }
 
     /**
@@ -53,7 +53,9 @@ class block_catquiz_feedbackwizard extends block_base {
 
         $this->content = new stdClass();
 
-        $imagepath = $this->get_url('pic/cat_wizard.jpg');         
+        $imagepath = $this->get_url('pic/cat_wizard_ready.jpg');    
+        $imagepath = $this->get_url('pic/cat_wizard_notests.jpg'); 
+        $imagepath = $this->get_url('pic/cat_wizard_finished.jpg');         
 
         $this->content->items = [];
         $this->content->items[] = '<a href="https://moodle.org">Moodle Website</a>';
@@ -100,7 +102,7 @@ class block_catquiz_feedbackwizard extends block_base {
 
         // Load user defined title and make sure it's never empty.
         if (empty($this->config->title)) {
-            $this->title = get_string('pluginname', 'block_catquiz_quizsettingwizard');
+            $this->title = get_string('pluginname', 'block_catquiz_feedbackwizard');
         } else {
             $this->title = $this->config->title;
         }
@@ -141,6 +143,6 @@ class block_catquiz_feedbackwizard extends block_base {
     
     private function get_url($relativepath) {
         global $CFG;
-        return $CFG->wwwroot . '/blocks/catquiz_quizsettingwizard/' . $relativepath;
+        return $CFG->wwwroot . '/blocks/catquiz_feedbackwizard/' . $relativepath;
     }
 }
