@@ -25,7 +25,7 @@
 /**
  * Definition of the catquiz_feedbackwizard block.
  *
- * @package    block_catquiz_feedbackwizard
+ * @package   sblock_catquiz_feedbackwizard
  * @copyright 2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -152,10 +152,10 @@ class block_catquiz_feedbackwizard extends block_base {
     /**
      * Gives the path of a file in block folder
      *
-     * @param string relative path
+     * @param string $relativepath relative path
      * @return string URL of the full path
      */  
-    private function get_url(string $relativepath): string {
+    private function get_url(string $relativepath = ''): string {
         global $CFG;
         return $CFG->wwwroot . '/blocks/catquiz_feedbackwizard/' . $relativepath;
     }
