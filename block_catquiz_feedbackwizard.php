@@ -97,6 +97,11 @@ class block_catquiz_feedbackwizard extends block_base {
         return $this->content;
     }
 
+    /**
+     * Defines the self test.
+     *
+     * The function is called immediately after init().
+     */
     public function self_test() {
 
         return true;
