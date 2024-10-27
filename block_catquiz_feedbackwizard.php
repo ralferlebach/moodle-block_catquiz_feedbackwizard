@@ -85,7 +85,7 @@ class block_catquiz_feedbackwizard extends block_base {
             $this->content->text .= '<p>Please define the content text in /blocks/catquiz_quizsettingwizard/block_catquiz_quizsettingwizard.php.</p>';
         }
 
-        // Rendering der Items und Icons
+        // Rendering der Items und Icons.
         $this->content->text .= '<ul>';
         foreach ($this->content->items as $index => $item) {
             $icon = isset($this->content->icons[$index]) ? $this->content->icons[$index] : '';
@@ -98,7 +98,7 @@ class block_catquiz_feedbackwizard extends block_base {
 
     public function _self_test() {
 
-        return true; // Wenn alle Tests bestehen
+        return true;
     }
     
     /**
@@ -117,7 +117,7 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
-     * Allow multiple instances in a single course?
+     * Allow multiple instances in a single course
      *
      * @return bool True if multiple instances are allowed, false otherwise.
      */
@@ -126,7 +126,7 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
-     * Enables global configuration of the block in settings.php.
+     * Enables global configuration of the block in settings.php
      *
      * @return bool True if the global configuration is enabled.
      */
@@ -135,21 +135,27 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
-     * Sets the applicable formats for the block.
+     * Sets the applicable formats for the block
      *
      * @return string[] Array of pages and permissions.
      */
      public function applicable_formats() {
-        return array(
+        return [
                 'admin' => false,
                 'site-index' => false,
                 'course-view' => true,
                 'mod' => false,
                 'my' => false,
-        );
+        ];
     }
-    
-    private function get_url($relativepath) {
+  
+    /**
+     * Gives the path of a file in block folder
+     *
+     * @param string relative path
+     * @return string URL of the full path
+     */  
+    private function get_url(string $relativepath): string {
         global $CFG;
         return $CFG->wwwroot . '/blocks/catquiz_feedbackwizard/' . $relativepath;
     }
