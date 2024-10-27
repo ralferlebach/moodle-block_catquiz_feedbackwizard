@@ -56,4 +56,4 @@ $capabilities =[
             'student' => CAP_PREVENT,
         ],
     ],
-);
+];
