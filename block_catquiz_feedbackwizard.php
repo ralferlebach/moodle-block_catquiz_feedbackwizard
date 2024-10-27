@@ -17,12 +17,18 @@
 /**
  * Block catquiz_quizsettingwizard is defined here.
  *
- * @package     block_catquiz_quizsettingwizard
+ * @package     block_catquiz_feedbackwizard
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
+/**
+ * Definition of the catquiz_feedbackwizard block.
+ *
+ * @package    block_catquiz_feedbackwizard
+ * @copyright 2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class block_catquiz_feedbackwizard extends block_base {
 
     /**
@@ -50,12 +56,11 @@ class block_catquiz_feedbackwizard extends block_base {
             return $this->content;
         }
 
-
         $this->content = new stdClass();
 
-        $imagepath = $this->get_url('pic/cat_wizard_ready.jpg');    
-        $imagepath = $this->get_url('pic/cat_wizard_notests.jpg'); 
-        $imagepath = $this->get_url('pic/cat_wizard_finished.jpg');         
+        $imagepath = $this->get_url('pic/cat_wizard_ready.jpg');
+        $imagepath = $this->get_url('pic/cat_wizard_notests.jpg');
+        $imagepath = $this->get_url('pic/cat_wizard_finished.jpg');
 
         $this->content->items = [];
         $this->content->items[] = '<a href="https://moodle.org">Moodle Website</a>';
@@ -63,9 +68,12 @@ class block_catquiz_feedbackwizard extends block_base {
         $this->content->items[] = '<a href="https://moodle.org/community">Moodle Community</a>';
 
         $this->content->icons = [];
-        $this->content->icons[] = '<img src="' . $this->get_url('icons/add.svg') . '" style="width:16px; height:16px; vertical-align:middle;" />';
-        $this->content->icons[] = '<img src="' . $this->get_url('icons/edit.svg') . '" style="width:16px; height:16px; vertical-align:middle;" />';
-        $this->content->icons[] = '<img src="' . $this->get_url('icons/delete.svg') . '" style="width:16px; height:16px; vertical-align:middle;" />';
+        $this->content->icons[] = '<img src="' . $this->get_url('icons/add.svg') . '" 
+            style="width:16px; height:16px; vertical-align:middle;" />';
+        $this->content->icons[] = '<img src="' . $this->get_url('icons/edit.svg') . '" 
+            style="width:16px; height:16px; vertical-align:middle;" />';
+        $this->content->icons[] = '<img src="' . $this->get_url('icons/delete.svg') . '" 
+            style="width:16px; height:16px; vertical-align:middle;" />';
 
         $this->content->footer = 'FOOTER';
 
