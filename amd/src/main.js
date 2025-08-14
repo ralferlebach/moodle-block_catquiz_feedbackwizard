@@ -23,6 +23,13 @@
 define(['core_form/modalform', 'core/notification', 'core/str'],
     function(ModalForm, Notification, Str) {
 
+    /**
+     * Opens the Modal Form.
+     * @param {number} courseid.
+     * @param {number} step.
+     * @param {number} draftid.
+     * @returns
+     */
     function openWizard(courseid, step, draftid) {
     step = step || 1;
 
