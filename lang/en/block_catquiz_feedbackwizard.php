@@ -1,6 +1,6 @@
 <?php 
-    $string['pluginname'] = 'Multistage form (modal) block';
-    $string['openwizard'] = 'Open multistage wizard'; 
+    $string['pluginname'] = 'CATQuiz Settings Wizard';
+    $string['openwizard'] = 'Start the CATQuiz wizard';
     $string['privacy:metadata:block_catquiz_feedbackwizard'] = 'Stores multistage form drafts and submissions.'; 
     $string['privacy:metadata:block_catquiz_feedbackwizard:userid'] = 'The user ID who created the draft/submission.'; 
     $string['privacy:metadata:block_catquiz_feedbackwizard:courseid'] = 'The course ID where the submission was created.'; 
@@ -12,8 +12,9 @@
     $string['field:title'] = 'Title'; 
     $string['field:category'] = 'Category'; 
     $string['field:description'] = 'Description'; 
-    $string['field:attachments'] = 'Attachments'; 
-    $string['submitnext'] = 'Continue'; 
+    $string['field:attachments'] = 'Attachments';
+    $string['submitprevious'] = 'Back';
+    $string['submitnext'] = 'Continue';
     $string['submitfinal'] = 'Submit'; 
     $string['savedprogress'] = 'Progress saved.'; 
     $string['submissionsuccess'] = 'Your submission has been recorded.'; 

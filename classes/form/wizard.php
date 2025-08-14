@@ -124,6 +124,7 @@
             // Add step 2 validations if required.
             return $errors;
         }
+
         public function process_dynamic_submission() {
             global $USER;
             
@@ -133,30 +134,16 @@
             $draftid = (int)($data->draftid ?? 0);
             
             // Load or create draft holder for this flow.
-            if ($draftid) {
+            if ($draftid > 0) {
                 $draft = new draft_persistent($draftid);
-                } else {
+            } else {
                 $draft = new draft_persistent(0, (object)[
-                'userid' => $USER->id,
-                'courseid' => $courseid,
-                'status' => 'draft',
-                'step' => $step,
-                'timecreated' => time(),
-                'timemodified' => time(),
-                ]);
-            }
-            
-            // Load or create draft holder for this flow.
-            if ($draftid) {
-                $draft = new draft_persistent($draftid);
-                } else {
-                $draft = new draft_persistent(0, (object)[
-                'userid' => $USER->id,
-                'courseid' => $courseid,
-                'status' => 'draft',
-                'step' => $step,
-                'timecreated' => time(),
-                'timemodified' => time(),
+                    'userid' => $USER->id,
+                    'courseid' => $courseid,
+                    'status' => 'draft',
+                    'step' => $step,
+                    'timecreated' => time(),
+                    'timemodified' => time(),
                 ]);
             }
             
@@ -198,9 +185,9 @@
             
             // Return final response; modal JS will close and show a success message.
             return (object)[
-            'status' => 'submitted',
-            'message' => get_string('submissionsuccess', 'block_catquiz_feedbackwizard'),
-            'recordid' => $draft->get('id'),
+                'status' => 'submitted',
+                'message' => get_string('submissionsuccess', 'block_catquiz_feedbackwizard'),
+                'recordid' => $draft->get('id'),
             ];
         }
         

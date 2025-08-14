@@ -1,19 +1,28 @@
-define(['core_form/modalform', 'core/notification', 'core/str'], function(ModalForm, Notification, Str) {
+define(['core_form/modalform', 'core/notification', 'core/str'],
+    function(ModalForm, Notification, Str) {
+
     function openWizard(courseid, step, draftid) {
     step = step || 1;
+
     draftid = draftid || 0;
+
     var saveKey = step < 3 ? 'submitnext' : 'submitfinal';
+
     return Promise.all([
         Str.get_string('pluginname', 'block_catquiz_feedbackwizard'),
-        Str.get_string(saveKey, 'block_catquiz_feedbackwizard')
+        Str.get_string(saveKey, 'block_catquiz_feedbackwizard'),
+        Str.get_string('submitprevious', 'block_catquiz_feedbackwizard'),
     ]).then(function(results) {
         var title = results[0];
-        var saveText = results;
+
+        var saveText = results[1];
+        var backText = results[2];
+
         var modalForm = new ModalForm({
             formClass: 'block_catquiz_feedbackwizard\\form\\wizard',
             args: {courseid: courseid, step: step, draftid: draftid},
             modalConfig: {title: title},
-            saveButtonText: saveText
+            // saveButtonText: saveText
         });
         var closeModal = function() {
             if (typeof modalForm.close === 'function') {
@@ -27,25 +36,33 @@ define(['core_form/modalform', 'core/notification', 'core/str'], function(ModalF
             }
             return Promise.resolve();
         };
+
         modalForm.addEventListener(modalForm.events.FORM_SUBMITTED, function(e) {
             var response = e.detail || {};
+
             if (response.status === 'continue') {
                 closeModal().then(function() {
                     Notification.addNotification({message: response.message, type: 'success'});
                     openWizard(courseid, response.nextstep, response.draftid).catch(Notification.exception);
                 });
+
             } else if (response.status === 'submitted') {
                 closeModal().then(function() {
                     Notification.addNotification({message: response.message, type: 'success'});
                 });
+
             }
         });
         modalForm.addEventListener(modalForm.events.FORM_CANCELLED, function() {
             closeModal();
+
         });
+
         modalForm.show();
+
     }).catch(Notification.exception);
 }
+
 return {
     init: function() {
         document.addEventListener('click', function(e) {
