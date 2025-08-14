@@ -148,11 +148,11 @@
         }
 
         /**
-         * @param $data
-         * @param $files
+         * @param array $data
+         * @param array $files
          * @return array
          */
-        public function validation($data, $files): array {
+        public function validation(array $data, array $files): array {
             $errors = [];
             $step = (int)($data['step'] ?? 1);
 
