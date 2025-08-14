@@ -38,7 +38,7 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
         var title = results[0];
 
         var saveText = results[1];
-        var backText = results[2];
+        // var backText = results[2];
 
         var modalForm = new ModalForm({
             formClass: 'block_catquiz_feedbackwizard\\form\\wizard',
