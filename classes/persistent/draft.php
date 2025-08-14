@@ -21,7 +21,7 @@
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-    namespace block_catquiz_feedbackwizard\persistent;
+namespace block_catquiz_feedbackwizard\persistent;
     
     defined('MOODLE_INTERNAL') || die();
     

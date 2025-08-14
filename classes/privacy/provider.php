@@ -18,7 +18,7 @@
  * Plugin version and other meta-data are defined here.
  *
  * @package     block_catquiz_feedbackwizard
- * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @copyright   2025 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
     namespace block_catquiz_feedbackwizard\privacy;

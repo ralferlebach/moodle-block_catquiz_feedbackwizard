@@ -7,6 +7,8 @@
     <list default="true" id="69ed9979-b4a7-4271-a2e6-24a7b6a405f8" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.github/workflows/moodle-plugin-ci.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/moodle-plugin-ci.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/php.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/php.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/LICENSE.md" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
@@ -64,7 +66,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "reference.webide.settings.project.settings.php",
+    "settings.editor.selected.configurable": "copyright",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -89,7 +91,7 @@
       <option name="presentableId" value="Default" />
       <updated>1755165319618</updated>
       <workItem from="1755165320742" duration="19740000" />
-      <workItem from="1755199815822" duration="1714000" />
+      <workItem from="1755199815822" duration="7316000" />
     </task>
     <servers />
   </component>

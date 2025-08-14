@@ -22,10 +22,8 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-    defined('MOODLE_INTERNAL') || die();
-
 /**
- *
+ * CLASS lock_catquiz_feedbackwizard
  */
 class block_catquiz_feedbackwizard extends block_base {
 
@@ -33,53 +31,53 @@ class block_catquiz_feedbackwizard extends block_base {
      * @return void
      */
     public function init() {
-            $this->title = get_string('pluginname', 'block_catquiz_feedbackwizard'); 
-        }
+        $this->title = get_string('pluginname', 'block_catquiz_feedbackwizard');
+    }
 
     /**
      * @return true[]
      */
     public function applicable_formats() {
-            return [
+        return [
             'site' => true,
             'course-view' => true,
-            ];
-        }
+        ];
+    }
 
     /**
      * @return false
      */
     public function instance_allow_multiple() {
-            return false;
-        }
+        return false;
+    }
 
     /**
      * @return stdClass
      */
     public function get_content() {
-        
-            global $COURSE, $OUTPUT;
-            if ($this->content !== null) {
-                return $this->content;
-            }
-            
-            $this->content = new stdClass();
-            $context = context_course::instance($COURSE->id ?? SITEID);
-            if (!has_capability('block/catquiz_feedbackwizard:use', $context)) {
-                $this->content->text = '';
-                return $this->content;
-            }
-            
-            $data = (object)[
-            'buttonlabel' => get_string('openwizard', 'block_catquiz_feedbackwizard'),
-            'courseid' => (int)($COURSE->id ?? SITEID),
-            ];
-            
-            $this->content->text = $OUTPUT->render_from_template('block_catquiz_feedbackwizard/block', $data);
-            
-            // Load our AMD to wire up the modal form.
-            $this->page->requires->js_call_amd('block_catquiz_feedbackwizard/main', 'init');
-            
+
+        global $COURSE, $OUTPUT;
+        if ($this->content !== null) {
             return $this->content;
         }
+
+        $this->content = new stdClass();
+        $context = context_course::instance($COURSE->id ?? SITEID);
+        if (!has_capability('block/catquiz_feedbackwizard:use', $context)) {
+            $this->content->text = '';
+            return $this->content;
+        }
+            
+        $data = (object)[
+            'buttonlabel' => get_string('openwizard', 'block_catquiz_feedbackwizard'),
+            'courseid' => (int)($COURSE->id ?? SITEID),
+        ];
+
+        $this->content->text = $OUTPUT->render_from_template('block_catquiz_feedbackwizard/block', $data);
+            
+        // Load our AMD to wire up the modal form.
+        $this->page->requires->js_call_amd('block_catquiz_feedbackwizard/main', 'init');
+            
+        return $this->content;
     }
+}

@@ -21,7 +21,6 @@
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
     $string['pluginname'] = 'CATQuiz Settings Wizard';
     $string['openwizard'] = 'Start the CATQuiz wizard';
     $string['privacy:metadata:block_catquiz_feedbackwizard'] = 'Stores multistage form drafts and submissions.'; 
