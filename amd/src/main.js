@@ -22,7 +22,7 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
             formClass: 'block_catquiz_feedbackwizard\\form\\wizard',
             args: {courseid: courseid, step: step, draftid: draftid},
             modalConfig: {title: title},
-            // saveButtonText: saveText
+            saveButtonText: saveText
         });
         var closeModal = function() {
             if (typeof modalForm.close === 'function') {

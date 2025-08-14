@@ -1,14 +1,43 @@
 <?php
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Plugin version and other meta-data are defined here.
+ *
+ * @package     block_catquiz_feedbackwizard
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
     namespace block_catquiz_feedbackwizard\privacy;
     
     defined('MOODLE_INTERNAL') || die();
     use core_privacy\local\metadata\collection; 
     use core_privacy\local\request\writer; 
     use context;
-    
+
+    /**
+     *
+     */
     class provider implements \core_privacy\local\metadata\provider, \core_privacy\local\request\plugin\provider {
-        
-        
+
+
+        /**
+         * @param collection $collection
+         * @return collection
+         */
         public static function get_metadata(collection $collection): collection {
         
         $collection->add_database_table(
@@ -22,7 +51,11 @@
 
             return $collection;
         }
-        
+
+        /**
+         * @param int $userid
+         * @return \core_privacy\local\request\contextlist
+         */
         public static function get_contexts_for_userid(int $userid): \core_privacy\local\request\contextlist {
             
             global $DB;
@@ -39,6 +72,11 @@
             
             return $contextlist;
         }
+
+        /**
+         * @param \core_privacy\local\request\approved_contextlist $contextlist
+         * @return void
+         */
         public static function export_user_data(\core_privacy\local\request\approved_contextlist $contextlist) {
         
             global $DB;
@@ -64,7 +102,11 @@
                 );
             }
         }
-        
+
+        /**
+         * @param context $context
+         * @return void
+         */
         public static function delete_data_for_all_users_in_context(context $context) {
             
             global $DB;
@@ -73,6 +115,11 @@
                 $DB->delete_records('block_catquiz_feedbackwizard', ['courseid' => $context->instanceid]);
             }
         }
+
+        /**
+         * @param \core_privacy\local\request\approved_contextlist $contextlist
+         * @return void
+         */
         public static function delete_data_for_user(\core_privacy\local\request\approved_contextlist $contextlist) {
             global $DB;
             $userid = $contextlist->get_user()->id;

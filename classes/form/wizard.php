@@ -1,4 +1,5 @@
-<?php 
+<?php
+
     
     namespace block_catquiz_feedbackwizard\form;
     
@@ -8,9 +9,15 @@
     use context_course; 
     use core_form\dynamic_form; 
     use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
-    
+
+    /**
+     *
+     */
     class wizard extends dynamic_form {
-        
+
+        /**
+         * @return \context
+         */
         protected function get_context_for_dynamic_submission(): \context {
             
             $courseid = $this->optional_param('courseid', 0, PARAM_INT);
@@ -21,11 +28,17 @@
             }
             return context_course::instance($courseid);
         }
-        
+
+        /**
+         * @return void
+         */
         protected function check_access_for_dynamic_submission(): void {
             require_capability('block/catquiz_feedbackwizard:use', $this->get_context_for_dynamic_submission());
         }
-        
+
+        /**
+         * @return void
+         */
         public function set_data_for_dynamic_submission(): void {
             global $USER;
 
@@ -51,7 +64,10 @@
             }
             $this->set_data((object)$data);
         }
-        
+
+        /**
+         * @return void
+         */
         public function definition(): void {
             $mform = $this->_form;
             
@@ -111,7 +127,12 @@
                 throw new \moodle_exception('error:invalidstep', 'block_catquiz_feedbackwizard');
             }
         }
-        
+
+        /**
+         * @param $data
+         * @param $files
+         * @return array
+         */
         public function validation($data, $files): array {
             $errors = [];
             $step = (int)($data['step'] ?? 1);
@@ -125,6 +146,9 @@
             return $errors;
         }
 
+        /**
+         * @return object
+         */
         public function process_dynamic_submission() {
             global $USER;
             
@@ -190,7 +214,10 @@
                 'recordid' => $draft->get('id'),
             ];
         }
-        
+
+        /**
+         * @return moodle_url
+         */
         protected function get_page_url_for_dynamic_submission(): moodle_url {
             $courseid = $this->optional_param('courseid', 0, PARAM_INT);
             return new moodle_url('/course/view.php', ['id' => $courseid ?: SITEID]);
