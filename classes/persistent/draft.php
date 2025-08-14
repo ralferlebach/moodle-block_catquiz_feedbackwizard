@@ -47,7 +47,7 @@ class draft extends persistent {
             'type' => PARAM_INT,
             ],
         'status' => [
-            'type' => PARAM_ALPHA, // draft|submitted|abandoned
+            'type' => PARAM_ALPHA,
             'default' => 'draft',
             ],
         'step' => [

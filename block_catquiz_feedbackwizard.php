@@ -23,7 +23,7 @@
  */
 
 /**
- * CLASS lock_catquiz_feedbackwizard
+ * CLASS block_catquiz_feedbackwizard
  */
 class block_catquiz_feedbackwizard extends block_base {
 
@@ -35,7 +35,7 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
-     * @return true[]
+     * @return array
      */
     public function applicable_formats(): array {
         return [
