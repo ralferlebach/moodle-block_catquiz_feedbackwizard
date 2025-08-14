@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="blocks/catquiz_feedbackwizard/db" VERSION="2025081400" COMMENT="Block catquiz_feedbackwizard tables">
+    <TABLES>
+        <TABLE NAME="block_catquiz_feedbackwizard" COMMENT="Draft and submitted records for multistage wizard">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="draft" COMMENT="draft|submitted|abandoned"/>
+                <FIELD NAME="step" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1"/>
+                <FIELD NAME="datajson" TYPE="text" NOTNULL="false" COMMENT="JSON encoded partial data"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="usercourse_idx" UNIQUE="false" FIELDS="userid, courseid"/>
+            </INDEXES>
+        </TABLE>
+    </TABLES>
+</XMLDB>
