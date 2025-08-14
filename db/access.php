@@ -33,7 +33,7 @@ $capabilities = [
             'coursecreator' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
         ],
-    'clonepermissionsfrom' => 'moodle/site:manageblocks',
+        'clonepermissionsfrom' => 'moodle/site:manageblocks',
     ],
 
     // Ihre bestehende Capability zum Nutzen des Wizards.

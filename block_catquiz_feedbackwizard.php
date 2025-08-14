@@ -30,14 +30,14 @@ class block_catquiz_feedbackwizard extends block_base {
     /**
      * @return void
      */
-    public function init() {
+    public function init(): void {
         $this->title = get_string('pluginname', 'block_catquiz_feedbackwizard');
     }
 
     /**
      * @return true[]
      */
-    public function applicable_formats() {
+    public function applicable_formats(): array {
         return [
             'site' => true,
             'course-view' => true,
@@ -45,16 +45,16 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
-     * @return false
+     * @return bool
      */
-    public function instance_allow_multiple() {
+    public function instance_allow_multiple(): bool {
         return false;
     }
 
     /**
      * @return stdClass
      */
-    public function get_content() {
+    public function get_content(): stdClass {
 
         global $COURSE, $OUTPUT;
         if ($this->content !== null) {
@@ -67,17 +67,17 @@ class block_catquiz_feedbackwizard extends block_base {
             $this->content->text = '';
             return $this->content;
         }
-            
+
         $data = (object)[
             'buttonlabel' => get_string('openwizard', 'block_catquiz_feedbackwizard'),
             'courseid' => (int)($COURSE->id ?? SITEID),
         ];
 
         $this->content->text = $OUTPUT->render_from_template('block_catquiz_feedbackwizard/block', $data);
-            
+
         // Load our AMD to wire up the modal form.
         $this->page->requires->js_call_amd('block_catquiz_feedbackwizard/main', 'init');
-            
+
         return $this->content;
     }
 }
