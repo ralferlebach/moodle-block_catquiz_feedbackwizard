@@ -21,29 +21,29 @@
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-    defined('MOODLE_INTERNAL') || die();
-    
-    $capabilities = [ 
-        // Erlaubt das Hinzufügen des Blocks auf Kursseiten. 
-        'block/catquiz_feedbackwizard:addinstance' => [
-            'captype' => 'write',
-            'contextlevel' => CONTEXT_COURSE, 
-            'archetypes' => [
-                'manager' => CAP_ALLOW,
-                'coursecreator' => CAP_ALLOW,
-                'editingteacher' => CAP_ALLOW,
-            ], 
-        'clonepermissionsfrom' => 'moodle/site:manageblocks', 
+defined('MOODLE_INTERNAL') || die();
+
+$capabilities = [
+    // Erlaubt das Hinzufügen des Blocks auf Kursseiten.
+    'block/catquiz_feedbackwizard:addinstance' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => [
+            'manager' => CAP_ALLOW,
+            'coursecreator' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
         ],
-    
-        // Ihre bestehende Capability zum Nutzen des Wizards.
-        'block/catquiz_feedbackwizard:use' => [
-            'riskbitmask' => RISK_PERSONAL,
-            'captype' => 'write',
-            'contextlevel' => CONTEXT_COURSE,
-            'archetypes' => [
-                'manager' => CAP_ALLOW,
-                'editingteacher' => CAP_ALLOW,
-            ],
+    'clonepermissionsfrom' => 'moodle/site:manageblocks',
+    ],
+
+    // Ihre bestehende Capability zum Nutzen des Wizards.
+    'block/catquiz_feedbackwizard:use' => [
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => [
+            'manager' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
         ],
-    ];
+    ],
+];
