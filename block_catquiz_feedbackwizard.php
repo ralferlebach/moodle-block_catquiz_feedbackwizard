@@ -28,6 +28,7 @@
 class block_catquiz_feedbackwizard extends block_base {
 
     /**
+     * Init block plugin.
      * @return void
      */
     public function init(): void {
@@ -35,6 +36,7 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
+     * Does something.
      * @return array
      */
     public function applicable_formats(): array {
@@ -45,6 +47,7 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
+     * Does something different.
      * @return bool
      */
     public function instance_allow_multiple(): bool {
@@ -52,6 +55,7 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
+     * Get content.
      * @return stdClass
      */
     public function get_content(): stdClass {
