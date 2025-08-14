@@ -105,45 +105,40 @@ class wizard extends dynamic_form {
 
         switch ($step) {
             case 1:
-            $mform->addElement('header', 'h1', get_string('step1title', 'block_catquiz_feedbackwizard'));
-            $mform->addElement('text', 'title', get_string('field:title', 'block_catquiz_feedbackwizard'));
-            $mform->setType('title', PARAM_TEXT);
-            $mform->addRule('title', get_string('required'), 'required', null, 'client');
-            $mform->addElement('select', 'category', get_string('field:category', 'block_catquiz_feedbackwizard'), [
-            'general' => 'General',
-            'news' => 'News',
-            'assignment' => 'Assignment',
-            ]);
-            $mform->setType('category', PARAM_ALPHANUMEXT);
-
-            # $this->add_action_buttons(true, get_string('submitnext', 'block_catquiz_feedbackwizard'));
-            break;
+                $mform->addElement('header', 'h1', get_string('step1title', 'block_catquiz_feedbackwizard'));
+                $mform->addElement('text', 'title', get_string('field:title', 'block_catquiz_feedbackwizard'));
+                $mform->setType('title', PARAM_TEXT);
+                $mform->addRule('title', get_string('required'), 'required', null, 'client');
+                $mform->addElement('select', 'category', get_string('field:category', 'block_catquiz_feedbackwizard'), [
+                'general' => 'General',
+                'news' => 'News',
+                'assignment' => 'Assignment',
+                ]);
+                $mform->setType('category', PARAM_ALPHANUMEXT);
+                break;
 
             case 2:
-            $mform->addElement('header', 'h2', get_string('step2title', 'block_catquiz_feedbackwizard'));
-            $mform->addElement('editor', 'description', get_string('field:description', 'block_catquiz_feedbackwizard'));
-            $mform->setType('description', PARAM_RAW);
+                $mform->addElement('header', 'h2', get_string('step2title', 'block_catquiz_feedbackwizard'));
+                $mform->addElement('editor', 'description', get_string('field:description', 'block_catquiz_feedbackwizard'));
+                $mform->setType('description', PARAM_RAW);
 
-            $fileoptions = [
-            'maxbytes' => 0,
-            'maxfiles' => 5,
-            'subdirs' => 0,
-            'accepted_types' => '*',
-            ];
-            $mform->addElement('filemanager', 'attachments', get_string('field:attachments', 'block_catquiz_feedbackwizard'), null, $fileoptions);
-
-            # $this->add_action_buttons(true, get_string('submitnext', 'block_catquiz_feedbackwizard'));
-            break;
+                $fileoptions = [
+                'maxbytes' => 0,
+                'maxfiles' => 5,
+                'subdirs' => 0,
+                'accepted_types' => '*',
+                ];
+                $mform->addElement('filemanager', 'attachments', get_string('field:attachments', 'block_catquiz_feedbackwizard'), null, $fileoptions);
+                break;
 
             case 3:
-            $mform->addElement('header', 'h3', get_string('step3title', 'block_catquiz_feedbackwizard'));
-            // A simple review display. In a real implementation, you may recompose from stored draft data.
-            $mform->addElement('static', 'review', '', 'Please review your data and click Submit.');
-            # $this->add_action_buttons(true, get_string('submitfinal', 'block_catquiz_feedbackwizard'));
-            break;
+                $mform->addElement('header', 'h3', get_string('step3title', 'block_catquiz_feedbackwizard'));
+                // A simple review display. In a real implementation, you may recompose from stored draft data.
+                $mform->addElement('static', 'review', '', 'Please review your data and click Submit.');
+                break;
 
             default:
-            throw new \moodle_exception('error:invalidstep', 'block_catquiz_feedbackwizard');
+                throw new \moodle_exception('error:invalidstep', 'block_catquiz_feedbackwizard');
         }
     }
 
