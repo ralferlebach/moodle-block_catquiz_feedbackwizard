@@ -42,6 +42,7 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
             draftid = draftid || 0;
 
             var saveKey = step < 3 ? 'submitnext' : 'submitfinal';
+            var cancelKey = step > 1 ? true : false;
 
             return Promise.all([
                 Str.get_string('pluginname', 'block_catquiz_feedbackwizard'),
@@ -49,14 +50,23 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
                 Str.get_string('submitprevious', 'block_catquiz_feedbackwizard'),
             ]).then(function(results) {
                 var title = results[0];
-                var saveText = results[1];
-                // Var backText = results[2]; // Reserved for future back button functionality.
+                var nextText = results[1];
+                var backText = results[2];
 
                 var modalForm = new ModalForm({
                     formClass: 'block_catquiz_feedbackwizard\\form\\wizard',
-                    args: {courseid: courseid, step: step, draftid: draftid},
-                    modalConfig: {title: title},
-                    saveButtonText: saveText
+                    args: {
+                        courseid: courseid,
+                        step: step,
+                        draftid: draftid},
+                    modalConfig: {
+                        title: title,
+                        type: 'SAVE_CANCEL',
+                        large: true,
+                        scrollable: true,
+                        showSaveButton: true,
+                        showCancelButton: cancelKey},
+                    saveButtonText: nextText
                 });
 
                 /**
@@ -123,7 +133,17 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
                     closeModal().catch(Notification.exception);
                 });
 
-                modalForm.show();
+                modalForm.show().then(function() {
+                    // Manipulate Cancel-Button after showing up.
+                    var cancelBtn = document.querySelector('.modal-footer .btn-secondary');
+                    if (cancelBtn) {
+                        if (cancelKey) {
+                            cancelBtn.textContent = backText;
+                        } else {
+                            cancelBtn.style.display = 'none';
+                        }
+                    }
+                });
 
             }).catch(Notification.exception);
         }
