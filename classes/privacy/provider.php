@@ -58,10 +58,10 @@ class provider implements \core_privacy\local\metadata\provider, \core_privacy\l
 
         $collection->add_database_table(
             'block_catquiz_feedbackwizard', [
-            'userid' => 'privacy:metadata:block_catquiz_feedbackwizard:userid',
-            'courseid' => 'privacy:metadata:block_catquiz_feedbackwizard:courseid',
-            'datajson' => 'privacy:metadata:block_catquiz_feedbackwizard:datajson',
-        ],
+                'userid' => 'privacy:metadata:block_catquiz_feedbackwizard:userid',
+                'courseid' => 'privacy:metadata:block_catquiz_feedbackwizard:courseid',
+                'datajson' => 'privacy:metadata:block_catquiz_feedbackwizard:datajson',
+            ],
             'privacy:metadata:block_catquiz_feedbackwizard'
         );
 
