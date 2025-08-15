@@ -62,96 +62,125 @@ class wizard extends dynamic_form {
         }
         return context_course::instance($courseid);
     }
-        
-        protected function check_access_for_dynamic_submission(): void {
-            require_capability('block/catquiz_feedbackwizard:use', $this->get_context_for_dynamic_submission());
+
+    /**
+     * Check access permissions for dynamic form submission.
+     *
+     * Verifies that the user has the required capability to use
+     * the catquiz feedback wizard.
+     *
+     * @return void
+     * @throws \required_capability_exception If user lacks required capability
+     */
+    protected function check_access_for_dynamic_submission(): void {
+        require_capability('block/catquiz_feedbackwizard:use', $this->get_context_for_dynamic_submission());
+    }
+
+    /**
+     * Set form data for dynamic submission from draft.
+     *
+     * Loads previously saved draft data and populates the form
+     * if a valid draft ID is provided and belongs to the current user.
+     *
+     * @return void
+     */
+    public function set_data_for_dynamic_submission(): void {
+        global $USER;
+
+        $draftid = $this->optional_param('draftid', 0, PARAM_INT);
+
+        if (!$draftid) {
+            return;
         }
-        
-        public function set_data_for_dynamic_submission(): void {
-            global $USER;
+        $draft = new draft_persistent($draftid);
 
-            $draftid = $this->optional_param('draftid', 0, PARAM_INT);
-
-            if (!$draftid) {
-                return;
-            }
-            $draft = new draft_persistent($draftid);
-
-            if ((int)$draft->get('userid') !== (int)$USER->id) {
-                return;
-            }
-            $json = $draft->get('datajson');
-
-            if (empty($json)) {
-                return;
-            }
-            $data = json_decode($json, true);
-
-            if (!is_array($data)) {
-                retrun;
-            }
-            $this->set_data((object)$data);
+        // Verify draft belongs to current user.
+        if ((int)$draft->get('userid') !== (int)$USER->id) {
+            return;
         }
-        
-        public function definition(): void {
-            $mform = $this->_form;
-            
-            $step = $this->optional_param('step', 1, PARAM_INT);
-            $courseid = $this->optional_param('courseid', 0, PARAM_INT);
-            $draftid = $this->optional_param('draftid', 0, PARAM_INT);
-            
-            $mform->addElement('hidden', 'courseid', $courseid);
-            $mform->setType('courseid', PARAM_INT);
-            
-            $mform->addElement('hidden', 'step', $step);
-            $mform->setType('step', PARAM_INT);
-            
-            $mform->addElement('hidden', 'draftid', $draftid);
-            $mform->setType('draftid', PARAM_INT);
+        $json = $draft->get('datajson');
 
-            switch ($step) {
-                case 1:
+        if (empty($json)) {
+            return;
+        }
+        $data = json_decode($json, true);
+
+        if (!is_array($data)) {
+            return;
+        }
+        $this->set_data((object)$data);
+    }
+
+    /**
+     * Define the form structure.
+     *
+     * Creates different form elements based on the current step:
+     * - Step 1: Title and category selection
+     * - Step 2: Description editor and file attachments
+     * - Step 3: Review and submission
+     *
+     * @return void
+     * @throws \moodle_exception If invalid step is provided
+     */
+    public function definition(): void {
+        $mform = $this->_form;
+
+        $step = $this->optional_param('step', 1, PARAM_INT);
+        $courseid = $this->optional_param('courseid', 0, PARAM_INT);
+        $draftid = $this->optional_param('draftid', 0, PARAM_INT);
+
+        // Hidden fields for form state management.
+        $mform->addElement('hidden', 'courseid', $courseid);
+        $mform->setType('courseid', PARAM_INT);
+
+        $mform->addElement('hidden', 'step', $step);
+        $mform->setType('step', PARAM_INT);
+
+        $mform->addElement('hidden', 'draftid', $draftid);
+        $mform->setType('draftid', PARAM_INT);
+
+        switch ($step) {
+            case 1:
+                // Step 1: Basic information.
                 $mform->addElement('header', 'h1', get_string('step1title', 'block_catquiz_feedbackwizard'));
                 $mform->addElement('text', 'title', get_string('field:title', 'block_catquiz_feedbackwizard'));
                 $mform->setType('title', PARAM_TEXT);
                 $mform->addRule('title', get_string('required'), 'required', null, 'client');
                 $mform->addElement('select', 'category', get_string('field:category', 'block_catquiz_feedbackwizard'), [
-                'general' => 'General',
-                'news' => 'News',
-                'assignment' => 'Assignment',
+                    'general' => 'General',
+                    'news' => 'News',
+                    'assignment' => 'Assignment',
                 ]);
                 $mform->setType('category', PARAM_ALPHANUMEXT);
-                
-                # $this->add_action_buttons(true, get_string('submitnext', 'block_catquiz_feedbackwizard'));
                 break;
-                
-                case 2:
+
+            case 2:
+                // Step 2: Detailed content.
                 $mform->addElement('header', 'h2', get_string('step2title', 'block_catquiz_feedbackwizard'));
                 $mform->addElement('editor', 'description', get_string('field:description', 'block_catquiz_feedbackwizard'));
                 $mform->setType('description', PARAM_RAW);
-                
+
                 $fileoptions = [
-                'maxbytes' => 0,
-                'maxfiles' => 5,
-                'subdirs' => 0,
-                'accepted_types' => '*',
+                    'maxbytes' => 0,
+                    'maxfiles' => 5,
+                    'subdirs' => 0,
+                    'accepted_types' => '*',
                 ];
-                $mform->addElement('filemanager', 'attachments', get_string('field:attachments', 'block_catquiz_feedbackwizard'), null, $fileoptions);
-                
-                # $this->add_action_buttons(true, get_string('submitnext', 'block_catquiz_feedbackwizard'));
+                $mform->addElement('filemanager', 'attachments', get_string('field:attachments',
+                    'block_catquiz_feedbackwizard'), null, $fileoptions);
                 break;
-                
-                case 3:
+
+            case 3:
+                // Step 3: Review and submission.
                 $mform->addElement('header', 'h3', get_string('step3title', 'block_catquiz_feedbackwizard'));
                 // A simple review display. In a real implementation, you may recompose from stored draft data.
                 $mform->addElement('static', 'review', '', 'Please review your data and click Submit.');
-                # $this->add_action_buttons(true, get_string('submitfinal', 'block_catquiz_feedbackwizard'));
                 break;
-                
-                default:
+
+            default:
                 throw new \moodle_exception('error:invalidstep', 'block_catquiz_feedbackwizard');
-            }
         }
+    }
         
         public function validation($data, $files): array {
             $errors = [];
