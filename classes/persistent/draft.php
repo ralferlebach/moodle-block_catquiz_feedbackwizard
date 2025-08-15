@@ -60,55 +60,34 @@ class draft extends persistent {
      */
     protected static function define_properties() {
         return [
-            /**
-             * User ID of the draft owner.
-             */
             'userid' => [
                 'type' => PARAM_INT,
             ],
 
-            /**
-             * Course ID where the draft was created.
-             */
             'courseid' => [
                 'type' => PARAM_INT,
             ],
 
-            /**
-             * Status of the draft entry (draft, submitted, etc.).
-             */
             'status' => [
                 'type' => PARAM_ALPHA,
                 'default' => 'draft',
             ],
 
-            /**
-             * Current step in the wizard process.
-             */
             'step' => [
                 'type' => PARAM_INT,
                 'default' => 1,
             ],
 
-            /**
-             * JSON string containing the form data.
-             */
             'datajson' => [
                 'type' => PARAM_RAW, // JSON string.
                 'null' => NULL_ALLOWED,
             ],
 
-            /**
-             * Timestamp when the draft was created.
-             */
             'timecreated' => [
                 'type' => PARAM_INT,
                 'default' => 0,
             ],
 
-            /**
-             * Timestamp when the draft was last modified.
-             */
             'timemodified' => [
                 'type' => PARAM_INT,
                 'default' => 0,

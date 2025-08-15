@@ -106,7 +106,7 @@ class wizard extends dynamic_form {
         $data = json_decode($json, true);
 
         if (!is_array($data)) {
-            return; // Fixed typo: was "retrun"
+            return;
         }
         $this->set_data((object)$data);
     }
@@ -166,7 +166,8 @@ class wizard extends dynamic_form {
                     'subdirs' => 0,
                     'accepted_types' => '*',
                 ];
-                $mform->addElement('filemanager', 'attachments', get_string('field:attachments', 'block_catquiz_feedbackwizard'), null, $fileoptions);
+                $mform->addElement('filemanager', 'attachments', get_string('field:attachments',
+                    'block_catquiz_feedbackwizard'), null, $fileoptions);
                 break;
 
             case 3:

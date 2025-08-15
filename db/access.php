@@ -27,22 +27,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * Array of capabilities for the catquiz feedback wizard block.
- *
- * This array defines all the capabilities (permissions) available for this block,
- * including who can add instances and who can use the wizard functionality.
- *
- * @var array $capabilities Array of capability definitions
- */
 $capabilities = [
-    /**
-     * Capability to add an instance of this block to course pages.
-     *
-     * This capability controls who can add the catquiz feedback wizard block
-     * to course pages. It inherits permissions from the standard block management
-     * capability.
-     */
     'block/catquiz_feedbackwizard:addinstance' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
@@ -54,13 +39,6 @@ $capabilities = [
         'clonepermissionsfrom' => 'moodle/site:manageblocks',
     ],
 
-    /**
-     * Capability to use the catquiz feedback wizard functionality.
-     *
-     * This capability controls who can access and use the feedback wizard
-     * features provided by this block. It has a personal risk level as it
-     * may involve handling personal feedback data.
-     */
     'block/catquiz_feedbackwizard:use' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'write',
