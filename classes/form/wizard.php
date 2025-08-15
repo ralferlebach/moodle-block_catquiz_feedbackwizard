@@ -181,19 +181,30 @@ class wizard extends dynamic_form {
                 throw new \moodle_exception('error:invalidstep', 'block_catquiz_feedbackwizard');
         }
     }
-        
-        public function validation($data, $files): array {
-            $errors = [];
-            $step = (int)($data['step'] ?? 1);
-            
-            if ($step === 1) {
-                if (empty(trim($data['title'] ?? ''))) {
-                    $errors['title'] = get_string('required');
-                }
+
+    /**
+     * Validate form data.
+     *
+     * Performs step-specific validation of form data.
+     * Currently validates required fields in step 1.
+     *
+     * @param array $data Form data to validate
+     * @param array $files Uploaded files (unused)
+     * @return array Array of validation errors
+     */
+    public function validation($data, $files) {
+        $errors = [];
+        $step = (int)($data['step'] ?? 1);
+
+        if ($step === 1) {
+            if (empty(trim($data['title'] ?? ''))) {
+                $errors['title'] = get_string('required');
             }
-            // Add step 2 validations if required.
-            return $errors;
         }
+        // Add step 2 validations if required.
+        return $errors;
+    }
+
         public function process_dynamic_submission() {
             global $USER;
             
