@@ -1,26 +1,67 @@
-<?php 
-    
-    namespace block_catquiz_feedbackwizard\form;
-    
-    defined('MOODLE_INTERNAL') || die();
-    
-    use moodle_url; 
-    use context_course; 
-    use core_form\dynamic_form; 
-    use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
-    
-    class wizard extends dynamic_form {
-        
-        protected function get_context_for_dynamic_submission(): \context {
-            
-            $courseid = $this->optional_param('courseid', 0, PARAM_INT);
-            
-            if (!$courseid) {
-                // Fallback to system if not provided.
-                return \context_system::instance();
-            }
-            return context_course::instance($courseid);
+<?php
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Dynamic form for the catquiz feedback wizard.
+ *
+ * This file contains the wizard form class that handles multi-step form
+ * processing for the catquiz feedback wizard block.
+ *
+ * @package     block_catquiz_feedbackwizard
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+namespace block_catquiz_feedbackwizard\form;
+
+use moodle_url;
+use context_course;
+use core_form\dynamic_form;
+use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
+
+/**
+ * Multi-step wizard form for catquiz feedback.
+ *
+ * This dynamic form handles a three-step wizard process for creating
+ * catquiz feedback entries with draft saving functionality.
+ *
+ * @package     block_catquiz_feedbackwizard
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class wizard extends dynamic_form {
+
+    /**
+     * Get the context for dynamic form submission.
+     *
+     * Returns the course context based on the courseid parameter,
+     * or system context as fallback.
+     *
+     * @return \context The context for this form submission
+     */
+    protected function get_context_for_dynamic_submission(): \context {
+
+        $courseid = $this->optional_param('courseid', 0, PARAM_INT);
+
+        if (!$courseid) {
+            // Fallback to system if not provided.
+            return \context_system::instance();
         }
+        return context_course::instance($courseid);
+    }
         
         protected function check_access_for_dynamic_submission(): void {
             require_capability('block/catquiz_feedbackwizard:use', $this->get_context_for_dynamic_submission());
