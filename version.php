@@ -18,7 +18,7 @@
  * Plugin version and other meta-data are defined here.
  *
  * @package     block_catquiz_feedbackwizard
- * @copyright   2025 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -26,6 +26,10 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'block_catquiz_feedbackwizard';
 $plugin->release = '0.1.1';
-$plugin->version = 2025081403;
+$plugin->version = 2025081500;
 $plugin->requires = 2022112800;
+$plugin->dependencies = [
+    'mod_adaptivequiz' => 2024031502,
+    'local_catquiz' => 2024062800,
+];
 $plugin->maturity = MATURITY_ALPHA;
