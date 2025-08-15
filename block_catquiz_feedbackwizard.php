@@ -23,12 +23,17 @@
  */
 
 /**
- * CLASS block_catquiz_feedbackwizard
+ * This block provides an user-friendly settings wizard for the local_catquiz plugin.
+ *
+ * @package     block_catquiz_feedbackwizard
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class block_catquiz_feedbackwizard extends block_base {
 
     /**
-     * Init block plugin.
+     * Sets the block title from language string.
+     *
      * @return void
      */
     public function init(): void {
@@ -36,8 +41,11 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
-     * Does something.
-     * @return array
+     * Define where this block can be displayed.
+     *
+     * Returns an array of page formats where this block is applicable.
+     *
+     * @return array Array of applicable page formats
      */
     public function applicable_formats(): array {
         return [
@@ -47,36 +55,45 @@ class block_catquiz_feedbackwizard extends block_base {
     }
 
     /**
-     * Does something different.
-     * @return bool
+     * Check if multiple instances of this block are allowed.
+     *
+     * @return bool False - only one instance per page is allowed
      */
     public function instance_allow_multiple(): bool {
         return false;
     }
 
     /**
-     * Get content.
-     * @return stdClass
+     * Creates the block content including capability checks and template rendering.
+     * Loads required JavaScript for modal functionality.
+     *
+     * @return stdClass The block content object
      */
     public function get_content(): stdClass {
 
         global $COURSE, $OUTPUT;
+
+        // Return cached content if already generated.
         if ($this->content !== null) {
             return $this->content;
         }
 
         $this->content = new stdClass();
         $context = context_course::instance($COURSE->id ?? SITEID);
+
+        // Check user capability to use this block.
         if (!has_capability('block/catquiz_feedbackwizard:use', $context)) {
             $this->content->text = '';
             return $this->content;
         }
 
+        // Prepare template data.
         $data = (object)[
             'buttonlabel' => get_string('openwizard', 'block_catquiz_feedbackwizard'),
             'courseid' => (int)($COURSE->id ?? SITEID),
         ];
 
+        // Render block content from template.
         $this->content->text = $OUTPUT->render_from_template('block_catquiz_feedbackwizard/block', $data);
 
         // Load our AMD to wire up the modal form.

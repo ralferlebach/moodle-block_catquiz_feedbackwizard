@@ -15,7 +15,10 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Dynamic form for the catquiz feedback wizard.
+ *
+ * This file contains the wizard form class that handles multi-step form
+ * processing for the catquiz feedback wizard block.
  *
  * @package     block_catquiz_feedbackwizard
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
@@ -30,12 +33,24 @@ use core_form\dynamic_form;
 use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
 
 /**
+ * Multi-step wizard form for catquiz feedback.
  *
+ * This dynamic form handles a three-step wizard process for creating
+ * catquiz feedback entries with draft saving functionality.
+ *
+ * @package     block_catquiz_feedbackwizard
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class wizard extends dynamic_form {
 
     /**
-     * @return \context
+     * Get the context for dynamic form submission.
+     *
+     * Returns the course context based on the courseid parameter,
+     * or system context as fallback.
+     *
+     * @return \context The context for this form submission
      */
     protected function get_context_for_dynamic_submission(): \context {
 
@@ -49,13 +64,24 @@ class wizard extends dynamic_form {
     }
 
     /**
+     * Check access permissions for dynamic form submission.
+     *
+     * Verifies that the user has the required capability to use
+     * the catquiz feedback wizard.
+     *
      * @return void
+     * @throws \required_capability_exception If user lacks required capability
      */
     protected function check_access_for_dynamic_submission(): void {
         require_capability('block/catquiz_feedbackwizard:use', $this->get_context_for_dynamic_submission());
     }
 
     /**
+     * Set form data for dynamic submission from draft.
+     *
+     * Loads previously saved draft data and populates the form
+     * if a valid draft ID is provided and belongs to the current user.
+     *
      * @return void
      */
     public function set_data_for_dynamic_submission(): void {
@@ -68,6 +94,7 @@ class wizard extends dynamic_form {
         }
         $draft = new draft_persistent($draftid);
 
+        // Verify draft belongs to current user.
         if ((int)$draft->get('userid') !== (int)$USER->id) {
             return;
         }
@@ -79,13 +106,21 @@ class wizard extends dynamic_form {
         $data = json_decode($json, true);
 
         if (!is_array($data)) {
-            retrun;
+            return; // Fixed typo: was "retrun"
         }
         $this->set_data((object)$data);
     }
 
     /**
+     * Define the form structure.
+     *
+     * Creates different form elements based on the current step:
+     * - Step 1: Title and category selection
+     * - Step 2: Description editor and file attachments
+     * - Step 3: Review and submission
+     *
      * @return void
+     * @throws \moodle_exception If invalid step is provided
      */
     public function definition(): void {
         $mform = $this->_form;
@@ -94,6 +129,7 @@ class wizard extends dynamic_form {
         $courseid = $this->optional_param('courseid', 0, PARAM_INT);
         $draftid = $this->optional_param('draftid', 0, PARAM_INT);
 
+        // Hidden fields for form state management.
         $mform->addElement('hidden', 'courseid', $courseid);
         $mform->setType('courseid', PARAM_INT);
 
@@ -105,33 +141,36 @@ class wizard extends dynamic_form {
 
         switch ($step) {
             case 1:
+                // Step 1: Basic information.
                 $mform->addElement('header', 'h1', get_string('step1title', 'block_catquiz_feedbackwizard'));
                 $mform->addElement('text', 'title', get_string('field:title', 'block_catquiz_feedbackwizard'));
                 $mform->setType('title', PARAM_TEXT);
                 $mform->addRule('title', get_string('required'), 'required', null, 'client');
                 $mform->addElement('select', 'category', get_string('field:category', 'block_catquiz_feedbackwizard'), [
-                'general' => 'General',
-                'news' => 'News',
-                'assignment' => 'Assignment',
+                    'general' => 'General',
+                    'news' => 'News',
+                    'assignment' => 'Assignment',
                 ]);
                 $mform->setType('category', PARAM_ALPHANUMEXT);
                 break;
 
             case 2:
+                // Step 2: Detailed content.
                 $mform->addElement('header', 'h2', get_string('step2title', 'block_catquiz_feedbackwizard'));
                 $mform->addElement('editor', 'description', get_string('field:description', 'block_catquiz_feedbackwizard'));
                 $mform->setType('description', PARAM_RAW);
 
                 $fileoptions = [
-                'maxbytes' => 0,
-                'maxfiles' => 5,
-                'subdirs' => 0,
-                'accepted_types' => '*',
+                    'maxbytes' => 0,
+                    'maxfiles' => 5,
+                    'subdirs' => 0,
+                    'accepted_types' => '*',
                 ];
                 $mform->addElement('filemanager', 'attachments', get_string('field:attachments', 'block_catquiz_feedbackwizard'), null, $fileoptions);
                 break;
 
             case 3:
+                // Step 3: Review and submission.
                 $mform->addElement('header', 'h3', get_string('step3title', 'block_catquiz_feedbackwizard'));
                 // A simple review display. In a real implementation, you may recompose from stored draft data.
                 $mform->addElement('static', 'review', '', 'Please review your data and click Submit.');
@@ -143,9 +182,14 @@ class wizard extends dynamic_form {
     }
 
     /**
-     * @param array $data
-     * @param array $files
-     * @return array
+     * Validate form data.
+     *
+     * Performs step-specific validation of form data.
+     * Currently validates required fields in step 1.
+     *
+     * @param array $data Form data to validate
+     * @param array $files Uploaded files (unused)
+     * @return array Array of validation errors
      */
     public function validation(array $data, array $files): array {
         $errors = [];
@@ -161,7 +205,13 @@ class wizard extends dynamic_form {
     }
 
     /**
-     * @return object
+     * Process the dynamic form submission.
+     *
+     * Handles form data processing, draft saving, and step progression.
+     * For steps 1-2, saves data as draft and continues to next step.
+     * For step 3, finalizes the submission.
+     *
+     * @return object Response object with status and next action
      */
     public function process_dynamic_submission() {
         global $USER;
@@ -208,10 +258,10 @@ class wizard extends dynamic_form {
         if ($step < 3) {
             // Tell the JS to reload the form for the next step.
             return (object)[
-            'status' => 'continue',
-            'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard'),
-            'nextstep' => $step + 1,
-            'draftid' => $draft->get('id'),
+                'status' => 'continue',
+                'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard'),
+                'nextstep' => $step + 1,
+                'draftid' => $draft->get('id'),
             ];
         }
 
@@ -230,7 +280,12 @@ class wizard extends dynamic_form {
     }
 
     /**
-     * @return moodle_url
+     * Get the page URL for dynamic form submission.
+     *
+     * Returns the course view URL for the specified course,
+     * or site homepage if no course is specified.
+     *
+     * @return moodle_url The URL to redirect to after form processing
      */
     protected function get_page_url_for_dynamic_submission(): moodle_url {
         $courseid = $this->optional_param('courseid', 0, PARAM_INT);
