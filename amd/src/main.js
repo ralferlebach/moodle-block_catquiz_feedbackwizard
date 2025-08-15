@@ -77,33 +77,53 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
                     return Promise.resolve();
                 };
 
+                /**
+                 * Handles the continue status response.
+                 *
+                 * @param {Object} response The response object from form submission
+                 * @returns {Promise} Promise chain for continue handling
+                 */
+                var handleContinueStatus = function(response) {
+                    Notification.addNotification({message: response.message, type: 'success'});
+                    return openWizard(courseid, response.nextstep, response.draftid);
+                };
+
+                /**
+                 * Handles the submitted status response.
+                 *
+                 * @param {Object} response The response object from form submission
+                 * @returns {void}
+                 */
+                var handleSubmittedStatus = function(response) {
+                    Notification.addNotification({message: response.message, type: 'success'});
+                };
+
                 // Handle form submission events.
                 modalForm.addEventListener(modalForm.events.FORM_SUBMITTED, function(e) {
                     var response = e.detail || {};
 
                     if (response.status === 'continue') {
-                        return closeModal().then(function() {
-                            Notification.addNotification({message: response.message, type: 'success'});
-                            return openWizard(courseid, response.nextstep, response.draftid);
-                        }).catch(Notification.exception);
+                        closeModal()
+                            .then(function() {
+                                return handleContinueStatus(response);
+                            })
+                            .catch(Notification.exception);
 
                     } else if (response.status === 'submitted') {
-                        return closeModal().then(function() {
-                            Notification.addNotification({message: response.message, type: 'success'});
-                            return Promise.resolve();
-                        }).catch(Notification.exception);
+                        closeModal()
+                            .then(function() {
+                                handleSubmittedStatus(response);
+                            })
+                            .catch(Notification.exception);
                     }
-
-                    return Promise.resolve();
                 });
 
                 // Handle form cancellation events.
                 modalForm.addEventListener(modalForm.events.FORM_CANCELLED, function() {
-                    return closeModal().catch(Notification.exception);
+                    closeModal().catch(Notification.exception);
                 });
 
                 modalForm.show();
-                return Promise.resolve();
 
             }).catch(Notification.exception);
         }
