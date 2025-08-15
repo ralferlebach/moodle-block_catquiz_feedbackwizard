@@ -146,20 +146,6 @@
                 ]);
             }
             
-            // Load or create draft holder for this flow.
-            if ($draftid) {
-                $draft = new draft_persistent($draftid);
-                } else {
-                $draft = new draft_persistent(0, (object)[
-                'userid' => $USER->id,
-                'courseid' => $courseid,
-                'status' => 'draft',
-                'step' => $step,
-                'timecreated' => time(),
-                'timemodified' => time(),
-                ]);
-            }
-            
             // Merge new data with previous datajson.
             $current = [];
             if ($draft->get('datajson')) {
