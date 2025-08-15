@@ -205,74 +205,91 @@ class wizard extends dynamic_form {
         return $errors;
     }
 
-        public function process_dynamic_submission() {
-            global $USER;
-            
-            $data = (object)$this->get_data();
-            $step = (int)($data->step ?? 1);
-            $courseid = (int)$data->courseid;
-            $draftid = (int)($data->draftid ?? 0);
-            
-            // Load or create draft holder for this flow.
-            if ($draftid) {
-                $draft = new draft_persistent($draftid);
-                } else {
-                $draft = new draft_persistent(0, (object)[
+    /**
+     * Process the dynamic form submission.
+     *
+     * Handles form data processing, draft saving, and step progression.
+     * For steps 1-2, saves data as draft and continues to next step.
+     * For step 3, finalizes the submission.
+     *
+     * @return object Response object with status and next action
+     */
+    public function process_dynamic_submission() {
+        global $USER;
+
+        $data = (object)$this->get_data();
+        $step = (int)($data->step ?? 1);
+        $courseid = (int)$data->courseid;
+        $draftid = (int)($data->draftid ?? 0);
+
+        // Load or create draft holder for this flow.
+        if ($draftid > 0) {
+            $draft = new draft_persistent($draftid);
+        } else {
+            $draft = new draft_persistent(0, (object)[
                 'userid' => $USER->id,
                 'courseid' => $courseid,
                 'status' => 'draft',
                 'step' => $step,
                 'timecreated' => time(),
                 'timemodified' => time(),
-                ]);
+            ]);
+        }
+
+        // Merge new data with previous datajson.
+        $current = [];
+        if ($draft->get('datajson')) {
+            $decoded = json_decode($draft->get('datajson'), true);
+            if (is_array($decoded)) {
+                $current = $decoded;
             }
-            
-            // Merge new data with previous datajson.
-            $current = [];
-            if ($draft->get('datajson')) {
-                $decoded = json_decode($draft->get('datajson'), true);
-                if (is_array($decoded)) {
-                    $current = $decoded;
-                }
-            }
-            
-            // Remove internal fields and merge.
-            $tomerge = (array)$data;
-            unset($tomerge['step'], $tomerge['draftid'], $tomerge['courseid'], $tomerge['sesskey'], $tomerge['id']);
-            
-            // For editor fields, dynamic_form provides arrays; store as-is or extract text as needed.
-            $merged = array_merge($current, $tomerge);
-            $draft->set('datajson', json_encode($merged));
-            $draft->set('step', $step);
-            $draft->set('timemodified', time());
-            $draft->save();
-            
-            if ($step < 3) {
-                // Tell the JS to reload the form for the next step.
-                return (object)[
+        }
+
+        // Remove internal fields and merge.
+        $tomerge = (array)$data;
+        unset($tomerge['step'], $tomerge['draftid'], $tomerge['courseid'], $tomerge['sesskey'], $tomerge['id']);
+
+        // For editor fields, dynamic_form provides arrays; store as-is or extract text as needed.
+        $merged = array_merge($current, $tomerge);
+        $draft->set('datajson', json_encode($merged));
+        $draft->set('step', $step);
+        $draft->set('timemodified', time());
+        $draft->save();
+
+        if ($step < 3) {
+            // Tell the JS to reload the form for the next step.
+            return (object)[
                 'status' => 'continue',
                 'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard'),
                 'nextstep' => $step + 1,
                 'draftid' => $draft->get('id'),
-                ];
-            }
-            
-            // Final processing on step 3.
-            // Example: Persist final data somewhere meaningful, send events, etc.
-            $draft->set('status', 'submitted');
-            $draft->set('timemodified', time());
-            $draft->save();
-            
-            // Return final response; modal JS will close and show a success message.
-            return (object)[
+            ];
+        }
+
+        // Final processing on step 3.
+        // Example: Persist final data somewhere meaningful, send events, etc.
+        $draft->set('status', 'submitted');
+        $draft->set('timemodified', time());
+        $draft->save();
+
+        // Return final response; modal JS will close and show a success message.
+        return (object)[
             'status' => 'submitted',
             'message' => get_string('submissionsuccess', 'block_catquiz_feedbackwizard'),
             'recordid' => $draft->get('id'),
-            ];
-        }
-        
-        protected function get_page_url_for_dynamic_submission(): moodle_url {
-            $courseid = $this->optional_param('courseid', 0, PARAM_INT);
-            return new moodle_url('/course/view.php', ['id' => $courseid ?: SITEID]);
-        }
-    }    
+        ];
+    }
+
+    /**
+     * Get the page URL for dynamic form submission.
+     *
+     * Returns the course view URL for the specified course,
+     * or site homepage if no course is specified.
+     *
+     * @return moodle_url The URL to redirect to after form processing
+     */
+    protected function get_page_url_for_dynamic_submission(): moodle_url {
+        $courseid = $this->optional_param('courseid', 0, PARAM_INT);
+        return new moodle_url('/course/view.php', ['id' => $courseid ?: SITEID]);
+    }
+}
