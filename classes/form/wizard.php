@@ -30,7 +30,9 @@ namespace block_catquiz_feedbackwizard\form;
 use moodle_url;
 use context_course;
 use core_form\dynamic_form;
+use block_catquiz_feedbackwizard\catquiz_data;
 use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
+
 
 /**
  * Multi-step wizard form for catquiz feedback.
@@ -44,6 +46,7 @@ use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
  */
 class wizard extends dynamic_form {
 
+    CONST MAXSTEPS = 6;
     /**
      * Get the context for dynamic form submission.
      *
@@ -142,21 +145,88 @@ class wizard extends dynamic_form {
         switch ($step) {
             case 1:
                 // Step 1: Basic information.
-                $mform->addElement('header', 'h1', get_string('step1title', 'block_catquiz_feedbackwizard'));
+                $mform->addElement('header', 'h1', get_string('step01:title', 'block_catquiz_feedbackwizard'));
+
+                $sqldata = catquiz_data::get_catquiz_by_couseid($courseid);
+
+                $catquizzes = [];
+                $radioarray = [];
+                $mform->addElement('html', "Getting CATquizzes: for $courseid -> ".print_r($sqldata, true)." <br>");
+                foreach ($sqldata as $row) {
+                    $catquizzes[$row->id] = $row->name ;//. " " . $row->catscaleid ? "✅" : "❌";
+                    $radioarray[] = $mform->createElement('radio', 'selection', '', $row->name, $row->id);
+
+                }
+                $mform->addGroup($radioarray, 'basic_group', '', '<br/>', false);
+                // $mform->addRule('selection', get_string('required'), 'required', null, 'client');
+
+
+                $mform->addElement('select', 'category', get_string('field:category', 'block_catquiz_feedbackwizard'),
+                    $catquizzes);
+                /*
+                // $mform->addElement('html', print_r($sqldata, true));
+                // Segment 1: Grundlegende Optionen
+                $mform->addElement('html', '<div class="radio-segment">');
+                $mform->addElement('html', '<h4>' . get_string('basicoption', 'block_catquiz_feedbackwizard') . '</h4>');
+
+                $radioarray = [];
+                $radioarray[] = $mform->createElement('radio', 'selection', '', get_string('option1', 'block_catquiz_feedbackwizard'), 'basic_1');
+                $radioarray[] = $mform->createElement('radio', 'selection', '', get_string('option2', 'block_catquiz_feedbackwizard'), 'basic_2');
+                $radioarray[] = $mform->createElement('radio', 'selection', '', get_string('option3', 'block_catquiz_feedbackwizard'), 'basic_3');
+
+                $mform->addGroup($radioarray, 'basic_group', '', '<br/>', false);
+                $mform->addElement('html', '</div>');
+
+                // Trennlinie
+                $mform->addElement('html', '<hr class="segment-divider">');
+
+                // Segment 2: Erweiterte Optionen
+                $mform->addElement('html', '<div class="radio-segment">');
+                $mform->addElement('html', '<h4>' . get_string('advancedoption', 'block_catquiz_feedbackwizard') . '</h4>');
+
+                $radioarray2 = [];
+                $radioarray2[] = $mform->createElement('radio', 'selection', '', get_string('option4', 'block_catquiz_feedbackwizard'), 'advanced_1');
+                $radioarray2[] = $mform->createElement('radio', 'selection', '', get_string('option5', 'block_catquiz_feedbackwizard'), 'advanced_2');
+                $radioarray2[] = $mform->createElement('radio', 'selection', '', get_string('option6', 'block_catquiz_feedbackwizard'), 'advanced_3');
+
+                $mform->addGroup($radioarray2, 'advanced_group', '', '<br/>', false);
+                $mform->addElement('html', '</div>');
+
+                // Trennlinie
+                $mform->addElement('html', '<hr class="segment-divider">');
+
+                // Segment 3: Spezielle Optionen
+                $mform->addElement('html', '<div class="radio-segment">');
+                $mform->addElement('html', '<h4>' . get_string('specialoption', 'block_catquiz_feedbackwizard') . '</h4>');
+
+                $radioarray3 = [];
+                $radioarray3[] = $mform->createElement('radio', 'selection', '', get_string('option7', 'block_catquiz_feedbackwizard'), 'special_1');
+                $radioarray3[] = $mform->createElement('radio', 'selection', '', get_string('option8', 'block_catquiz_feedbackwizard'), 'special_2');
+
+                $mform->addGroup($radioarray3, 'special_group', '', '<br/>', false);
+                $mform->addElement('html', '</div>');
+
+                // Validierung: Eine Auswahl ist erforderlich
+                $mform->addRule('selection', get_string('required'), 'required', null, 'client');
+
+                /*
                 $mform->addElement('text', 'title', get_string('field:title', 'block_catquiz_feedbackwizard'));
                 $mform->setType('title', PARAM_TEXT);
                 $mform->addRule('title', get_string('required'), 'required', null, 'client');
+*/
                 $mform->addElement('select', 'category', get_string('field:category', 'block_catquiz_feedbackwizard'), [
                     'general' => 'General',
                     'news' => 'News',
                     'assignment' => 'Assignment',
                 ]);
+
                 $mform->setType('category', PARAM_ALPHANUMEXT);
+
                 break;
 
             case 2:
                 // Step 2: Detailed content.
-                $mform->addElement('header', 'h2', get_string('step2title', 'block_catquiz_feedbackwizard'));
+                $mform->addElement('header', 'h2', get_string('step02:title', 'block_catquiz_feedbackwizard'));
                 $mform->addElement('editor', 'description', get_string('field:description', 'block_catquiz_feedbackwizard'));
                 $mform->setType('description', PARAM_RAW);
 
@@ -172,9 +242,19 @@ class wizard extends dynamic_form {
 
             case 3:
                 // Step 3: Review and submission.
-                $mform->addElement('header', 'h3', get_string('step3title', 'block_catquiz_feedbackwizard'));
+                $mform->addElement('header', 'h3', get_string('step03:title', 'block_catquiz_feedbackwizard'));
                 // A simple review display. In a real implementation, you may recompose from stored draft data.
                 $mform->addElement('static', 'review', '', 'Please review your data and click Submit.');
+                break;
+
+            case 4:
+                $mform->addElement('header', 'h3', get_string('step04:title', 'block_catquiz_feedbackwizard'));
+                break;
+            case 5:
+                $mform->addElement('header', 'h3', get_string('step05:title', 'block_catquiz_feedbackwizard'));
+                break;
+            case 6:
+                $mform->addElement('header', 'h3', get_string('step06:title', 'block_catquiz_feedbackwizard'));
                 break;
 
             default:
@@ -192,7 +272,7 @@ class wizard extends dynamic_form {
      * @param array $files Uploaded files (unused)
      * @return array Array of validation errors
      */
-    public function validation(array $data, array $files): array {
+    public function validation($data, $files) {
         $errors = [];
         $step = (int)($data['step'] ?? 1);
 
@@ -256,7 +336,7 @@ class wizard extends dynamic_form {
         $draft->set('timemodified', time());
         $draft->save();
 
-        if ($step < 3) {
+        if ($step < self::MAXSTEPS) {
             // Tell the JS to reload the form for the next step.
             return (object)[
                 'status' => 'continue',
@@ -266,7 +346,7 @@ class wizard extends dynamic_form {
             ];
         }
 
-        // Final processing on step 3.
+        // Final processing on step MAXSTEPS.
         // Example: Persist final data somewhere meaningful, send events, etc.
         $draft->set('status', 'submitted');
         $draft->set('timemodified', time());

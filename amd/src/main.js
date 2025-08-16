@@ -26,6 +26,9 @@
 define(['core_form/modalform', 'core/notification', 'core/str'],
     function(ModalForm, Notification, Str) {
 
+        // Globale Variable für maximale Steps
+        var maxSteps = 6; // Standard Value.
+
         /**
          * Opens the feedback wizard modal form.
          *
@@ -41,7 +44,7 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
             step = step || 1;
             draftid = draftid || 0;
 
-            var saveKey = step < 3 ? 'submitnext' : 'submitfinal';
+            var saveKey = step < maxSteps ? 'submitnext' : 'submitfinal';
             var cancelKey = step > 1 ? true : false;
 
             return Promise.all([
@@ -94,7 +97,7 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
                  * @returns {Promise} Promise chain for continue handling
                  */
                 var handleContinueStatus = function(response) {
-                    Notification.addNotification({message: response.message, type: 'success'});
+                    // Notification.addNotification({message: response.message, type: 'success'});
                     return openWizard(courseid, response.nextstep, response.draftid);
                 };
 
@@ -105,7 +108,7 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
                  * @returns {void}
                  */
                 var handleSubmittedStatus = function(response) {
-                    Notification.addNotification({message: response.message, type: 'success'});
+                    // Notification.addNotification({message: response.message, type: 'success'});
                 };
 
                 // Handle form submission events.
@@ -157,7 +160,12 @@ define(['core_form/modalform', 'core/notification', 'core/str'],
              *
              * @returns {void}
              */
-            init: function() {
+            init: function(params) {
+                // Read in parameters.
+                if (params && params.length > 0 && params[0].maxSteps) {
+                    maxSteps = parseInt(params[0].maxSteps, 10);
+                }
+
                 document.addEventListener('click', function(e) {
                     var trigger = e.target.closest('.js-open-catquiz_feedbackwizard[data-action="open-wizard"]');
                     if (!trigger) {
