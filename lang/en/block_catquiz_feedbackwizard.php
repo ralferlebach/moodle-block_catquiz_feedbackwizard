@@ -48,3 +48,4 @@ $string['error:invalidstep'] = 'Invalid wizard step.';
 
 $string['catquiz_feedbackwizard:addinstance'] = 'Add a new CATQuiz feedback wizard block';
 $string['catquiz_feedbackwizard:use'] = 'Use the CATQuiz feedback wizard';
+

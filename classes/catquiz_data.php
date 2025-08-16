@@ -13,8 +13,8 @@ class catquiz_data {
 
         $sql = "SELECT aq.id id, aq.name name, aq.course, lct.catscaleid catscaleid
           FROM {adaptivequiz} aq
-          RIGHT JOIN {local_catquiz_tests} lct ON aq.id = lct.componentid AND lct.component='mod_adaptivequiz'
-          WHERE courseid = :courseid";
+          LEFT JOIN {local_catquiz_tests} lct ON aq.id = lct.componentid AND lct.component='mod_adaptivequiz'
+          WHERE aq.course = :courseid";
 
         $records = $DB->get_records_sql($sql,['courseid' => $courseid]);
 

@@ -131,6 +131,7 @@ class wizard extends dynamic_form {
         $step = $this->optional_param('step', 1, PARAM_INT);
         $courseid = $this->optional_param('courseid', 0, PARAM_INT);
         $draftid = $this->optional_param('draftid', 0, PARAM_INT);
+        $action = $this->optional_param('action', '', PARAM_TEXT);
 
         // Hidden fields for form state management.
         $mform->addElement('hidden', 'courseid', $courseid);
@@ -142,6 +143,9 @@ class wizard extends dynamic_form {
         $mform->addElement('hidden', 'draftid', $draftid);
         $mform->setType('draftid', PARAM_INT);
 
+        $mform->addElement('hidden', 'action', '');
+        $mform->setType('action', PARAM_TEXT);
+
         switch ($step) {
             case 1:
                 // Step 1: Basic information.
@@ -149,22 +153,17 @@ class wizard extends dynamic_form {
 
                 $sqldata = catquiz_data::get_catquiz_by_couseid($courseid);
 
-                $catquizzes = [];
                 $radioarray = [];
-                $mform->addElement('html', "Getting CATquizzes: for $courseid -> ".print_r($sqldata, true)." <br>");
+                $mform->addElement('html', '<p>Please select CAT-Quiz that you want to alter settings on:</p>');
                 foreach ($sqldata as $row) {
-                    $catquizzes[$row->id] = $row->name ;//. " " . $row->catscaleid ? "✅" : "❌";
-                    $radioarray[] = $mform->createElement('radio', 'selection', '', $row->name, $row->id);
-
+                    $radioarray[] = $mform->createElement('radio', 'select_catquiz', '', $row->name, $row->id);
                 }
-                $mform->addGroup($radioarray, 'basic_group', '', '<br/>', false);
-                // $mform->addRule('selection', get_string('required'), 'required', null, 'client');
 
+                $mform->addGroup($radioarray, 'select_catquiz', 'CAT-Quizzes', '<br/>', false);
+                $mform->setType('select_catquiz', PARAM_INT);
+                $mform->addRule('select_catquiz', get_string('required'), 'required', null, 'client');
 
-                $mform->addElement('select', 'category', get_string('field:category', 'block_catquiz_feedbackwizard'),
-                    $catquizzes);
                 /*
-                // $mform->addElement('html', print_r($sqldata, true));
                 // Segment 1: Grundlegende Optionen
                 $mform->addElement('html', '<div class="radio-segment">');
                 $mform->addElement('html', '<h4>' . get_string('basicoption', 'block_catquiz_feedbackwizard') . '</h4>');
@@ -209,18 +208,8 @@ class wizard extends dynamic_form {
                 // Validierung: Eine Auswahl ist erforderlich
                 $mform->addRule('selection', get_string('required'), 'required', null, 'client');
 
-                /*
-                $mform->addElement('text', 'title', get_string('field:title', 'block_catquiz_feedbackwizard'));
-                $mform->setType('title', PARAM_TEXT);
-                $mform->addRule('title', get_string('required'), 'required', null, 'client');
-*/
-                $mform->addElement('select', 'category', get_string('field:category', 'block_catquiz_feedbackwizard'), [
-                    'general' => 'General',
-                    'news' => 'News',
-                    'assignment' => 'Assignment',
-                ]);
+                */
 
-                $mform->setType('category', PARAM_ALPHANUMEXT);
 
                 break;
 
@@ -275,10 +264,11 @@ class wizard extends dynamic_form {
     public function validation($data, $files) {
         $errors = [];
         $step = (int)($data['step'] ?? 1);
+        $action = (string)($data['action'] ?? '');
 
         if ($step === 1) {
-            if (empty(trim($data['title'] ?? ''))) {
-                $errors['title'] = get_string('required');
+            if (empty(trim($data['select_catquiz'] ?? ''))) {
+                $errors['select_catquiz'] = get_string('required');
             }
         }
         // Add step 2 validations if required.
@@ -301,6 +291,7 @@ class wizard extends dynamic_form {
         $step = (int)($data->step ?? 1);
         $courseid = (int)$data->courseid;
         $draftid = (int)($data->draftid ?? 0);
+        $action = (string)($data->action ?? 'next'); // String, nicht int!
 
         // Load or create draft holder for this flow.
         if ($draftid > 0) {
@@ -327,32 +318,39 @@ class wizard extends dynamic_form {
 
         // Remove internal fields and merge.
         $tomerge = (array)$data;
-        unset($tomerge['step'], $tomerge['draftid'], $tomerge['courseid'], $tomerge['sesskey'], $tomerge['id']);
+        unset($tomerge['step'], $tomerge['draftid'], $tomerge['courseid'], $tomerge['sesskey'], $tomerge['id'], $tomerge['action']);
 
-        // For editor fields, dynamic_form provides arrays; store as-is or extract text as needed.
         $merged = array_merge($current, $tomerge);
         $draft->set('datajson', json_encode($merged));
         $draft->set('step', $step);
         $draft->set('timemodified', time());
         $draft->save();
 
-        if ($step < self::MAXSTEPS) {
-            // Tell the JS to reload the form for the next step.
+        // Handle back action.
+        if ($action === 'back' && $step > 1) {
             return (object)[
                 'status' => 'continue',
-                'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard'),
+                'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard') . " (zurück zu Schritt " . ($step - 1) . ")",
+                'nextstep' => $step - 1,
+                'draftid' => $draft->get('id'),
+            ];
+        }
+
+        // Normal forward navigation
+        if ($step < self::MAXSTEPS) {
+            return (object)[
+                'status' => 'continue',
+                'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard') . " (Schritt $step abgeschlossen)",
                 'nextstep' => $step + 1,
                 'draftid' => $draft->get('id'),
             ];
         }
 
-        // Final processing on step MAXSTEPS.
-        // Example: Persist final data somewhere meaningful, send events, etc.
+        // Final processing
         $draft->set('status', 'submitted');
         $draft->set('timemodified', time());
         $draft->save();
 
-        // Return final response; modal JS will close and show a success message.
         return (object)[
             'status' => 'submitted',
             'message' => get_string('submissionsuccess', 'block_catquiz_feedbackwizard'),
