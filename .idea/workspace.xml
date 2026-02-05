@@ -20,6 +20,12 @@
       <change beforePath="$PROJECT_DIR$/classes/persistent/draft.php" beforeDir="false" afterPath="$PROJECT_DIR$/classes/persistent/draft.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/classes/privacy/provider.php" beforeDir="false" afterPath="$PROJECT_DIR$/classes/privacy/provider.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db/access.php" beforeDir="false" afterPath="$PROJECT_DIR$/db/access.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db/install.xml" beforeDir="false" afterPath="$PROJECT_DIR$/db/install.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/icons/add.svg" beforeDir="false" afterPath="$PROJECT_DIR$/icons/add.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/icons/addblock.svg" beforeDir="false" afterPath="$PROJECT_DIR$/icons/addblock.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/icons/delete.svg" beforeDir="false" afterPath="$PROJECT_DIR$/icons/delete.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/icons/edit.svg" beforeDir="false" afterPath="$PROJECT_DIR$/icons/edit.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/icons/viewdetails.svg" beforeDir="false" afterPath="$PROJECT_DIR$/icons/viewdetails.svg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lang/en/block_catquiz_feedbackwizard.php" beforeDir="false" afterPath="$PROJECT_DIR$/lang/en/block_catquiz_feedbackwizard.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/settings.php" beforeDir="false" afterPath="$PROJECT_DIR$/settings.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/block.mustache" beforeDir="false" afterPath="$PROJECT_DIR$/templates/block.mustache" afterDir="false" />
@@ -54,7 +60,7 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "develop",
+    "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -88,6 +94,9 @@
       <workItem from="1755165320742" duration="19740000" />
       <workItem from="1755199815822" duration="10702000" />
       <workItem from="1755248411292" duration="2193000" />
+      <workItem from="1755534981741" duration="891000" />
+      <workItem from="1767607194441" duration="811000" />
+      <workItem from="1768400746011" duration="845000" />
     </task>
     <servers />
   </component>
