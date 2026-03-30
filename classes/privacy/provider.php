@@ -60,6 +60,7 @@ class provider implements \core_privacy\local\metadata\provider, \core_privacy\l
             'block_catquiz_feedbackwizard', [
                 'userid' => 'privacy:metadata:block_catquiz_feedbackwizard:userid',
                 'courseid' => 'privacy:metadata:block_catquiz_feedbackwizard:courseid',
+                'testid' => 'privacy:metadata:block_catquiz_feedbackwizard:testid',
                 'datajson' => 'privacy:metadata:block_catquiz_feedbackwizard:datajson',
             ],
             'privacy:metadata:block_catquiz_feedbackwizard'

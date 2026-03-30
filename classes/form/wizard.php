@@ -14,76 +14,47 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-/**
- * Dynamic form for the catquiz feedback wizard.
- *
- * This file contains the wizard form class that handles multi-step form
- * processing for the catquiz feedback wizard block.
- *
- * @package     block_catquiz_feedbackwizard
- * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 namespace block_catquiz_feedbackwizard\form;
 
-use moodle_url;
-use context_course;
-use core_form\dynamic_form;
 use block_catquiz_feedbackwizard\catquiz_data;
 use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
-
+use context_course;
+use core_form\dynamic_form;
+use moodle_url;
 
 /**
- * Multi-step wizard form for catquiz feedback.
- *
- * This dynamic form handles a three-step wizard process for creating
- * catquiz feedback entries with draft saving functionality.
+ * Dynamic form for the CATQuiz wizard.
  *
  * @package     block_catquiz_feedbackwizard
- * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class wizard extends dynamic_form {
+    /** @var int Number of implemented wizard steps. */
+    public const MAXSTEPS = 6;
 
-    CONST MAXSTEPS = 6;
     /**
-     * Get the context for dynamic form submission.
+     * Get submission context.
      *
-     * Returns the course context based on the courseid parameter,
-     * or system context as fallback.
-     *
-     * @return \context The context for this form submission
+     * @return \context
      */
     protected function get_context_for_dynamic_submission(): \context {
-
         $courseid = $this->optional_param('courseid', 0, PARAM_INT);
-
         if (!$courseid) {
-            // Fallback to system if not provided.
             return \context_system::instance();
         }
         return context_course::instance($courseid);
     }
 
     /**
-     * Check access permissions for dynamic form submission.
-     *
-     * Verifies that the user has the required capability to use
-     * the catquiz feedback wizard.
+     * Check access.
      *
      * @return void
-     * @throws \required_capability_exception If user lacks required capability
      */
     protected function check_access_for_dynamic_submission(): void {
         require_capability('block/catquiz_feedbackwizard:use', $this->get_context_for_dynamic_submission());
     }
 
     /**
-     * Set form data for dynamic submission from draft.
-     *
-     * Loads previously saved draft data and populates the form
-     * if a valid draft ID is provided and belongs to the current user.
+     * Populate data from stored draft JSON.
      *
      * @return void
      */
@@ -91,39 +62,36 @@ class wizard extends dynamic_form {
         global $USER;
 
         $draftid = $this->optional_param('draftid', 0, PARAM_INT);
-
         if (!$draftid) {
             return;
         }
-        $draft = new draft_persistent($draftid);
 
-        // Verify draft belongs to current user.
+        $draft = new draft_persistent($draftid);
         if ((int)$draft->get('userid') !== (int)$USER->id) {
             return;
         }
-        $json = $draft->get('datajson');
 
+        $json = $draft->get('datajson');
         if (empty($json)) {
             return;
         }
-        $data = json_decode($json, true);
 
+        $data = json_decode($json, true);
         if (!is_array($data)) {
             return;
         }
+
+        if (!array_key_exists('testid', $data)) {
+            $data['testid'] = (int)$draft->get('testid');
+        }
+
         $this->set_data((object)$data);
     }
 
     /**
-     * Define the form structure.
-     *
-     * Creates different form elements based on the current step:
-     * - Step 1: Title and category selection
-     * - Step 2: Description editor and file attachments
-     * - Step 3: Review and submission
+     * Build the form for the current step.
      *
      * @return void
-     * @throws \moodle_exception If invalid step is provided
      */
     public function definition(): void {
         $mform = $this->_form;
@@ -131,175 +99,300 @@ class wizard extends dynamic_form {
         $step = $this->optional_param('step', 1, PARAM_INT);
         $courseid = $this->optional_param('courseid', 0, PARAM_INT);
         $draftid = $this->optional_param('draftid', 0, PARAM_INT);
-        $action = $this->optional_param('action', '', PARAM_TEXT);
+        $testid = $this->optional_param('testid', 0, PARAM_INT);
 
-        // Hidden fields for form state management.
         $mform->addElement('hidden', 'courseid', $courseid);
         $mform->setType('courseid', PARAM_INT);
-
         $mform->addElement('hidden', 'step', $step);
         $mform->setType('step', PARAM_INT);
-
         $mform->addElement('hidden', 'draftid', $draftid);
         $mform->setType('draftid', PARAM_INT);
-
+        if ($step !== 1) {
+            $mform->addElement('hidden', 'testid', $testid);
+            $mform->setType('testid', PARAM_INT);
+        }
         $mform->addElement('hidden', 'action', '');
-        $mform->setType('action', PARAM_TEXT);
+        $mform->setType('action', PARAM_ALPHA);
 
         switch ($step) {
             case 1:
-                // Step 1: Basic information.
-                $mform->addElement('header', 'h1', get_string('step01:title', 'block_catquiz_feedbackwizard'));
-
-                $sqldata = catquiz_data::get_catquiz_by_couseid($courseid);
-
-                $radioarray = [];
-                $mform->addElement('html', '<p>Please select CAT-Quiz that you want to alter settings on:</p>');
-                foreach ($sqldata as $row) {
-                    $radioarray[] = $mform->createElement('radio', 'select_catquiz', '', $row->name, $row->id);
-                }
-
-                $mform->addGroup($radioarray, 'select_catquiz', 'CAT-Quizzes', '<br/>', false);
-                $mform->setType('select_catquiz', PARAM_INT);
-                $mform->addRule('select_catquiz', get_string('required'), 'required', null, 'client');
-
-                /*
-                // Segment 1: Grundlegende Optionen
-                $mform->addElement('html', '<div class="radio-segment">');
-                $mform->addElement('html', '<h4>' . get_string('basicoption', 'block_catquiz_feedbackwizard') . '</h4>');
-
-                $radioarray = [];
-                $radioarray[] = $mform->createElement('radio', 'selection', '', get_string('option1', 'block_catquiz_feedbackwizard'), 'basic_1');
-                $radioarray[] = $mform->createElement('radio', 'selection', '', get_string('option2', 'block_catquiz_feedbackwizard'), 'basic_2');
-                $radioarray[] = $mform->createElement('radio', 'selection', '', get_string('option3', 'block_catquiz_feedbackwizard'), 'basic_3');
-
-                $mform->addGroup($radioarray, 'basic_group', '', '<br/>', false);
-                $mform->addElement('html', '</div>');
-
-                // Trennlinie
-                $mform->addElement('html', '<hr class="segment-divider">');
-
-                // Segment 2: Erweiterte Optionen
-                $mform->addElement('html', '<div class="radio-segment">');
-                $mform->addElement('html', '<h4>' . get_string('advancedoption', 'block_catquiz_feedbackwizard') . '</h4>');
-
-                $radioarray2 = [];
-                $radioarray2[] = $mform->createElement('radio', 'selection', '', get_string('option4', 'block_catquiz_feedbackwizard'), 'advanced_1');
-                $radioarray2[] = $mform->createElement('radio', 'selection', '', get_string('option5', 'block_catquiz_feedbackwizard'), 'advanced_2');
-                $radioarray2[] = $mform->createElement('radio', 'selection', '', get_string('option6', 'block_catquiz_feedbackwizard'), 'advanced_3');
-
-                $mform->addGroup($radioarray2, 'advanced_group', '', '<br/>', false);
-                $mform->addElement('html', '</div>');
-
-                // Trennlinie
-                $mform->addElement('html', '<hr class="segment-divider">');
-
-                // Segment 3: Spezielle Optionen
-                $mform->addElement('html', '<div class="radio-segment">');
-                $mform->addElement('html', '<h4>' . get_string('specialoption', 'block_catquiz_feedbackwizard') . '</h4>');
-
-                $radioarray3 = [];
-                $radioarray3[] = $mform->createElement('radio', 'selection', '', get_string('option7', 'block_catquiz_feedbackwizard'), 'special_1');
-                $radioarray3[] = $mform->createElement('radio', 'selection', '', get_string('option8', 'block_catquiz_feedbackwizard'), 'special_2');
-
-                $mform->addGroup($radioarray3, 'special_group', '', '<br/>', false);
-                $mform->addElement('html', '</div>');
-
-                // Validierung: Eine Auswahl ist erforderlich
-                $mform->addRule('selection', get_string('required'), 'required', null, 'client');
-
-                */
-
-
+                $this->definition_select_test($mform, $courseid);
                 break;
-
             case 2:
-                // Step 2: Detailed content.
-                $mform->addElement('header', 'h2', get_string('step02:title', 'block_catquiz_feedbackwizard'));
-                $mform->addElement('editor', 'description', get_string('field:description', 'block_catquiz_feedbackwizard'));
-                $mform->setType('description', PARAM_RAW);
-
-                $fileoptions = [
-                    'maxbytes' => 0,
-                    'maxfiles' => 5,
-                    'subdirs' => 0,
-                    'accepted_types' => '*',
-                ];
-                $mform->addElement('filemanager', 'attachments', get_string('field:attachments',
-                    'block_catquiz_feedbackwizard'), null, $fileoptions);
+                $this->definition_choose_mode($mform, $courseid, $testid);
                 break;
-
             case 3:
-                // Step 3: Review and submission.
-                $mform->addElement('header', 'h3', get_string('step03:title', 'block_catquiz_feedbackwizard'));
-                // A simple review display. In a real implementation, you may recompose from stored draft data.
-                $mform->addElement('static', 'review', '', 'Please review your data and click Submit.');
+                $this->definition_choose_scenario($mform);
                 break;
-
             case 4:
-                $mform->addElement('header', 'h3', get_string('step04:title', 'block_catquiz_feedbackwizard'));
+                $this->definition_select_scales($mform, $testid);
                 break;
             case 5:
-                $mform->addElement('header', 'h3', get_string('step05:title', 'block_catquiz_feedbackwizard'));
+                $this->definition_conditions($mform);
                 break;
             case 6:
-                $mform->addElement('header', 'h3', get_string('step06:title', 'block_catquiz_feedbackwizard'));
+                $this->definition_review($mform, $courseid, $testid);
                 break;
-
             default:
                 throw new \moodle_exception('error:invalidstep', 'block_catquiz_feedbackwizard');
         }
     }
 
     /**
-     * Validate form data.
+     * Step 1: Select CAT test.
      *
-     * Performs step-specific validation of form data.
-     * Currently validates required fields in step 1.
+     * @param \MoodleQuickForm $mform
+     * @param int $courseid
+     * @return void
+     */
+    protected function definition_select_test(\MoodleQuickForm $mform, int $courseid): void {
+        $mform->addElement('header', 'step01', get_string('step01:title', 'block_catquiz_feedbackwizard'));
+        $mform->addElement('static', 'step01desc', '', get_string('step01:description', 'block_catquiz_feedbackwizard'));
+
+        $tests = catquiz_data::get_tests_by_courseid($courseid);
+        if (empty($tests)) {
+            $mform->addElement('static', 'notests', '', get_string('notestsfound', 'block_catquiz_feedbackwizard'));
+            return;
+        }
+
+        $options = [];
+        foreach ($tests as $test) {
+            $label = format_string($test->name ?: get_string('unnamedtest', 'block_catquiz_feedbackwizard'));
+            $label .= ' — ' . $test->readinesslabel;
+            if (!empty($test->catscaleid)) {
+                $label .= ' — ' . get_string('label:scaleid', 'block_catquiz_feedbackwizard', $test->catscaleid);
+            }
+            $options[$test->id] = $label;
+        }
+
+        $mform->addElement('select', 'testid', get_string('field:testid', 'block_catquiz_feedbackwizard'), $options);
+        $mform->setType('testid', PARAM_INT);
+        $mform->addRule('testid', get_string('required'), 'required', null, 'client');
+
+        $details = [];
+        foreach ($tests as $test) {
+            $details[] = \html_writer::tag('li',
+                s($test->name ?: get_string('unnamedtest', 'block_catquiz_feedbackwizard')) .
+                ' — ' . s($test->readinesslabel) .
+                ' — ' . \html_writer::link($test->editurl, get_string('link:edittests', 'block_catquiz_feedbackwizard'),
+                    ['target' => '_blank', 'rel' => 'noopener']));
+        }
+        $mform->addElement('html', \html_writer::tag('ul', implode('', $details), ['class' => 'list-unstyled mt-2']));
+    }
+
+    /**
+     * Step 2: Choose mode.
      *
-     * @param array $data Form data to validate
-     * @param array $files Uploaded files (unused)
-     * @return array Array of validation errors
+     * @param \MoodleQuickForm $mform
+     * @param int $courseid
+     * @param int $testid
+     * @return void
+     */
+    protected function definition_choose_mode(\MoodleQuickForm $mform, int $courseid, int $testid): void {
+        $mform->addElement('header', 'step02', get_string('step02:title', 'block_catquiz_feedbackwizard'));
+
+        $mform->addElement('radio', 'wizardmode', get_string('field:wizardmode', 'block_catquiz_feedbackwizard'),
+            get_string('mode:new', 'block_catquiz_feedbackwizard'), 'new');
+        $mform->addElement('radio', 'wizardmode', '', get_string('mode:clone', 'block_catquiz_feedbackwizard'), 'clone');
+        $mform->addElement('radio', 'wizardmode', '', get_string('mode:edit', 'block_catquiz_feedbackwizard'), 'edit');
+        $mform->addElement('radio', 'wizardmode', '', get_string('mode:import', 'block_catquiz_feedbackwizard'), 'import');
+        $mform->setType('wizardmode', PARAM_ALPHA);
+        $mform->setDefault('wizardmode', 'new');
+        $mform->addRule('wizardmode', get_string('required'), 'required', null, 'client');
+
+        $candidates = catquiz_data::get_clone_candidates($courseid, $testid);
+        if (!empty($candidates)) {
+            $options = [0 => get_string('none')];
+            foreach ($candidates as $candidate) {
+                $options[$candidate->id] = format_string($candidate->name) . ' — ' . $candidate->readinesslabel;
+            }
+            $mform->addElement('select', 'sourcetestid', get_string('field:sourcetestid', 'block_catquiz_feedbackwizard'), $options);
+            $mform->setType('sourcetestid', PARAM_INT);
+        }
+
+        $mform->addElement('advcheckbox', 'importjson', get_string('field:importjson', 'block_catquiz_feedbackwizard'));
+        $mform->setType('importjson', PARAM_BOOL);
+    }
+
+    /**
+     * Step 3: Choose scenario.
+     *
+     * @param \MoodleQuickForm $mform
+     * @return void
+     */
+    protected function definition_choose_scenario(\MoodleQuickForm $mform): void {
+        $mform->addElement('header', 'step03', get_string('step03:title', 'block_catquiz_feedbackwizard'));
+        $options = [
+            'learning_diagnostics' => get_string('scenario:learning_diagnostics', 'block_catquiz_feedbackwizard'),
+            'placement_test' => get_string('scenario:placement_test', 'block_catquiz_feedbackwizard'),
+            'checkup_fulladaptive' => get_string('scenario:checkup_fulladaptive', 'block_catquiz_feedbackwizard'),
+            'final_partialadaptive' => get_string('scenario:final_partialadaptive', 'block_catquiz_feedbackwizard'),
+            'strength_profile' => get_string('scenario:strength_profile', 'block_catquiz_feedbackwizard'),
+            'other' => get_string('scenario:other', 'block_catquiz_feedbackwizard'),
+        ];
+        $mform->addElement('select', 'scenario', get_string('field:scenario', 'block_catquiz_feedbackwizard'), $options);
+        $mform->setType('scenario', PARAM_ALPHANUMEXT);
+        $mform->setDefault('scenario', 'learning_diagnostics');
+
+        $mform->addElement('textarea', 'scenario_notes', get_string('field:scenario_notes', 'block_catquiz_feedbackwizard'),
+            ['rows' => 4, 'cols' => 80]);
+        $mform->setType('scenario_notes', PARAM_TEXT);
+    }
+
+    /**
+     * Step 4: Select scales.
+     *
+     * @param \MoodleQuickForm $mform
+     * @param int $testid
+     * @return void
+     */
+    protected function definition_select_scales(\MoodleQuickForm $mform, int $testid): void {
+        $mform->addElement('header', 'step04', get_string('step04:title', 'block_catquiz_feedbackwizard'));
+
+        $test = catquiz_data::get_test_by_id($testid);
+        if ($test) {
+            $mform->addElement('static', 'selectedtest', get_string('field:selectedtest', 'block_catquiz_feedbackwizard'),
+                format_string($test->name) . ' — ' . s($test->readinesslabel));
+            $mform->setDefault('mainscaleid', (int)($test->catscaleid ?? 0));
+        }
+
+        $mform->addElement('text', 'mainscaleid', get_string('field:mainscaleid', 'block_catquiz_feedbackwizard'));
+        $mform->setType('mainscaleid', PARAM_INT);
+
+        $mform->addElement('textarea', 'subscaleids', get_string('field:subscaleids', 'block_catquiz_feedbackwizard'),
+            ['rows' => 3, 'cols' => 80]);
+        $mform->setType('subscaleids', PARAM_TEXT);
+        $mform->addHelpButton('subscaleids', 'field:subscaleids_help', 'block_catquiz_feedbackwizard');
+    }
+
+    /**
+     * Step 5: Conditions.
+     *
+     * @param \MoodleQuickForm $mform
+     * @return void
+     */
+    protected function definition_conditions(\MoodleQuickForm $mform): void {
+        $mform->addElement('header', 'step05', get_string('step05:title', 'block_catquiz_feedbackwizard'));
+
+        $goaloptions = [
+            'orientation' => get_string('goal:orientation', 'block_catquiz_feedbackwizard'),
+            'placement' => get_string('goal:placement', 'block_catquiz_feedbackwizard'),
+            'progress' => get_string('goal:progress', 'block_catquiz_feedbackwizard'),
+            'completion' => get_string('goal:completion', 'block_catquiz_feedbackwizard'),
+            'strengths' => get_string('goal:strengths', 'block_catquiz_feedbackwizard'),
+        ];
+        $mform->addElement('select', 'goal', get_string('field:goal', 'block_catquiz_feedbackwizard'), $goaloptions);
+        $mform->setType('goal', PARAM_ALPHA);
+        $mform->setDefault('goal', 'orientation');
+
+        $mform->addElement('text', 'timelimitminutes', get_string('field:timelimitminutes', 'block_catquiz_feedbackwizard'));
+        $mform->setType('timelimitminutes', PARAM_INT);
+
+        $mform->addElement('text', 'questioncount', get_string('field:questioncount', 'block_catquiz_feedbackwizard'));
+        $mform->setType('questioncount', PARAM_INT);
+
+        $precision = [
+            'low' => get_string('precision:low', 'block_catquiz_feedbackwizard'),
+            'medium' => get_string('precision:medium', 'block_catquiz_feedbackwizard'),
+            'high' => get_string('precision:high', 'block_catquiz_feedbackwizard'),
+        ];
+        $mform->addElement('select', 'precisionmode', get_string('field:precisionmode', 'block_catquiz_feedbackwizard'), $precision);
+        $mform->setType('precisionmode', PARAM_ALPHA);
+        $mform->setDefault('precisionmode', 'medium');
+    }
+
+    /**
+     * Step 6: Review.
+     *
+     * @param \MoodleQuickForm $mform
+     * @param int $courseid
+     * @param int $testid
+     * @return void
+     */
+    protected function definition_review(\MoodleQuickForm $mform, int $courseid, int $testid): void {
+        $mform->addElement('header', 'step06', get_string('step06:title', 'block_catquiz_feedbackwizard'));
+
+        $test = catquiz_data::get_test_by_id($testid);
+        $testlabel = $test ? format_string($test->name) : get_string('notavailable', 'block_catquiz_feedbackwizard');
+
+        $summary = [
+            get_string('review:courseid', 'block_catquiz_feedbackwizard', $courseid),
+            get_string('review:test', 'block_catquiz_feedbackwizard', $testlabel),
+            get_string('review:hint', 'block_catquiz_feedbackwizard'),
+        ];
+        $mform->addElement('static', 'reviewsummary', '', \html_writer::alist($summary));
+    }
+
+    /**
+     * Validate the current step.
+     *
+     * @param array $data
+     * @param array $files
+     * @return array
      */
     public function validation($data, $files) {
         $errors = [];
         $step = (int)($data['step'] ?? 1);
         $action = (string)($data['action'] ?? '');
 
-        if ($step === 1) {
-            if (empty(trim($data['select_catquiz'] ?? ''))) {
-                $errors['select_catquiz'] = get_string('required');
-            }
+        if ($action === 'back') {
+            return $errors;
         }
-        // Add step 2 validations if required.
+
+        switch ($step) {
+            case 1:
+                if (empty($data['testid'])) {
+                    $errors['testid'] = get_string('required');
+                }
+                break;
+            case 2:
+                if (empty($data['wizardmode'])) {
+                    $errors['wizardmode'] = get_string('required');
+                }
+                if (($data['wizardmode'] ?? '') === 'clone' && empty($data['sourcetestid'])) {
+                    $errors['sourcetestid'] = get_string('required');
+                }
+                break;
+            case 4:
+                if (empty($data['mainscaleid'])) {
+                    $errors['mainscaleid'] = get_string('required');
+                }
+                break;
+            case 5:
+                if (!empty($data['timelimitminutes']) && (int)$data['timelimitminutes'] < 0) {
+                    $errors['timelimitminutes'] = get_string('error:nonnegative', 'block_catquiz_feedbackwizard');
+                }
+                if (!empty($data['questioncount']) && (int)$data['questioncount'] < 1) {
+                    $errors['questioncount'] = get_string('error:questioncount', 'block_catquiz_feedbackwizard');
+                }
+                break;
+        }
+
         return $errors;
     }
 
     /**
-     * Process the dynamic form submission.
+     * Process the submitted step and persist the draft.
      *
-     * Handles form data processing, draft saving, and step progression.
-     * For steps 1-2, saves data as draft and continues to next step.
-     * For step 3, finalizes the submission.
-     *
-     * @return object Response object with status and next action
+     * @return object
      */
     public function process_dynamic_submission() {
         global $USER;
 
         $data = (object)$this->get_data();
         $step = (int)($data->step ?? 1);
-        $courseid = (int)$data->courseid;
+        $courseid = (int)($data->courseid ?? 0);
         $draftid = (int)($data->draftid ?? 0);
-        $action = (string)($data->action ?? 'next'); // String, nicht int!
+        $testid = (int)($data->testid ?? 0);
+        $action = (string)($data->action ?? 'next');
 
-        // Load or create draft holder for this flow.
         if ($draftid > 0) {
             $draft = new draft_persistent($draftid);
         } else {
             $draft = new draft_persistent(0, (object)[
                 'userid' => $USER->id,
                 'courseid' => $courseid,
+                'testid' => $testid,
                 'status' => 'draft',
                 'step' => $step,
                 'timecreated' => time(),
@@ -307,7 +400,6 @@ class wizard extends dynamic_form {
             ]);
         }
 
-        // Merge new data with previous datajson.
         $current = [];
         if ($draft->get('datajson')) {
             $decoded = json_decode($draft->get('datajson'), true);
@@ -316,37 +408,35 @@ class wizard extends dynamic_form {
             }
         }
 
-        // Remove internal fields and merge.
         $tomerge = (array)$data;
         unset($tomerge['step'], $tomerge['draftid'], $tomerge['courseid'], $tomerge['sesskey'], $tomerge['id'], $tomerge['action']);
-
         $merged = array_merge($current, $tomerge);
+        $merged['mode'] = $tomerge['wizardmode'] ?? ($merged['wizardmode'] ?? 'new');
+
+        $draft->set('testid', $testid);
         $draft->set('datajson', json_encode($merged));
         $draft->set('step', $step);
         $draft->set('timemodified', time());
         $draft->save();
 
-        // Handle back action.
         if ($action === 'back' && $step > 1) {
             return (object)[
                 'status' => 'continue',
-                'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard') . " (zurück zu Schritt " . ($step - 1) . ")",
+                'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard'),
                 'nextstep' => $step - 1,
                 'draftid' => $draft->get('id'),
             ];
         }
 
-        // Normal forward navigation
         if ($step < self::MAXSTEPS) {
             return (object)[
                 'status' => 'continue',
-                'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard') . " (Schritt $step abgeschlossen)",
+                'message' => get_string('savedprogress', 'block_catquiz_feedbackwizard'),
                 'nextstep' => $step + 1,
                 'draftid' => $draft->get('id'),
             ];
         }
 
-        // Final processing
         $draft->set('status', 'submitted');
         $draft->set('timemodified', time());
         $draft->save();
@@ -359,12 +449,9 @@ class wizard extends dynamic_form {
     }
 
     /**
-     * Get the page URL for dynamic form submission.
+     * Return the page URL.
      *
-     * Returns the course view URL for the specified course,
-     * or site homepage if no course is specified.
-     *
-     * @return moodle_url The URL to redirect to after form processing
+     * @return moodle_url
      */
     protected function get_page_url_for_dynamic_submission(): moodle_url {
         $courseid = $this->optional_param('courseid', 0, PARAM_INT);
