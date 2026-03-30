@@ -26,8 +26,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-    $settings = new admin_settingpage('block_catquiz_feedbackwizard_settings',
-        new lang_string('pluginname', 'block_catquiz_feedbackwizard'));
+    $settings = new admin_settingpage(
+        'block_catquiz_feedbackwizard_settings',
+        new lang_string('pluginname', 'block_catquiz_feedbackwizard')
+    );
 
     // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
     if ($ADMIN->fulltree) {

@@ -14,6 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
+/**
+ * CATQuiz test data access helpers.
+ *
+ * @package     block_catquiz_feedbackwizard
+ * @copyright   2026 OpenAI
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 namespace block_catquiz_feedbackwizard;
 
 use moodle_url;
@@ -22,6 +30,8 @@ use moodle_url;
  * Helper methods for reading CATQuiz tests for the wizard.
  *
  * @package     block_catquiz_feedbackwizard
+ * @copyright   2026 OpenAI
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class catquiz_data {
     /** @var string Readiness state: not configured. */

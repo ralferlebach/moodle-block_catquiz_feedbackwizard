@@ -16,21 +16,21 @@
 
 namespace block_catquiz_feedbackwizard;
 
-defined('MOODLE_INTERNAL') || die();
-
 use block_catquiz_feedbackwizard\local\service\test_config_writer;
 
 /**
  * PHPUnit coverage for the CATQuiz wizard test config writer.
  *
- * @package     block_catquiz_feedbackwizard
- * @copyright   2026 OpenAI
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package             block_catquiz_feedbackwizard
+ * @coversDefaultClass  \block_catquiz_feedbackwizard\local\service\test_config_writer
+ * @copyright           2026 OpenAI
+ * @license             https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class test_config_writer_test extends \basic_testcase {
     /**
      * Test parsing a comma-separated list of subscale IDs.
      *
+     * @covers ::parse_subscale_ids
      * @return void
      */
     public function test_parse_subscale_ids(): void {
@@ -42,6 +42,7 @@ final class test_config_writer_test extends \basic_testcase {
     /**
      * Test applying wizard state to an existing CAT test JSON payload.
      *
+     * @covers ::apply_wizard_state
      * @return void
      */
     public function test_apply_wizard_state(): void {

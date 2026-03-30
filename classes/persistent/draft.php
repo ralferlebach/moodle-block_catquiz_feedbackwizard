@@ -18,6 +18,8 @@
  * Draft persistent class for CATQuiz wizard.
  *
  * @package     block_catquiz_feedbackwizard
+ * @copyright   2026 OpenAI
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace block_catquiz_feedbackwizard\persistent;

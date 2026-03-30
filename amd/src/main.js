@@ -48,11 +48,13 @@ var wizardModule = function(ModalForm, Notification, Str) {
      * @returns {HTMLElement|null}
      */
     var getModalRoot = function(modalForm) {
+        var jq;
+
         if (!modalForm.modal || typeof modalForm.modal.getRoot !== 'function') {
             return null;
         }
 
-        var jq = modalForm.modal.getRoot();
+        jq = modalForm.modal.getRoot();
         return jq && (jq[0] || (jq.get && jq.get(0))) || null;
     };
 
@@ -64,21 +66,25 @@ var wizardModule = function(ModalForm, Notification, Str) {
      * @returns {Promise}
      */
     var handleBackNavigation = function(modalForm, step) {
+        var modalRoot = getModalRoot(modalForm);
+        var form;
+        var actionInput;
+        var submitBtn;
+
         if (step <= 1) {
             return closeModal(modalForm);
         }
 
-        var modalRoot = getModalRoot(modalForm);
         if (!modalRoot) {
             return closeModal(modalForm);
         }
 
-        var form = modalRoot.querySelector('form');
+        form = modalRoot.querySelector('form');
         if (!form) {
             return closeModal(modalForm);
         }
 
-        var actionInput = form.querySelector('input[name="action"]');
+        actionInput = form.querySelector('input[name="action"]');
         if (!actionInput) {
             actionInput = document.createElement('input');
             actionInput.type = 'hidden';
@@ -87,7 +93,7 @@ var wizardModule = function(ModalForm, Notification, Str) {
         }
         actionInput.value = 'back';
 
-        var submitBtn = modalRoot.querySelector('.modal-footer .btn-primary');
+        submitBtn = modalRoot.querySelector('.modal-footer .btn-primary');
         if (!submitBtn) {
             return closeModal(modalForm);
         }
@@ -127,15 +133,14 @@ var wizardModule = function(ModalForm, Notification, Str) {
      * @returns {Promise}
      */
     var continueWizard = function(modalForm, courseid, response) {
-        return closeModal(modalForm)
-            .then(function() {
-                Notification.addNotification({
-                    message: response.message,
-                    type: 'success'
-                });
-
-                return openWizard(courseid, response.nextstep, response.draftid);
+        return closeModal(modalForm).then(function() {
+            Notification.addNotification({
+                message: response.message,
+                type: 'success'
             });
+
+            return openWizard(courseid, response.nextstep, response.draftid);
+        });
     };
 
     /**
@@ -146,15 +151,14 @@ var wizardModule = function(ModalForm, Notification, Str) {
      * @returns {Promise}
      */
     var finishWizard = function(modalForm, response) {
-        return closeModal(modalForm)
-            .then(function() {
-                Notification.addNotification({
-                    message: response.message,
-                    type: 'success'
-                });
-
-                return null;
+        return closeModal(modalForm).then(function() {
+            Notification.addNotification({
+                message: response.message,
+                type: 'success'
             });
+
+            return null;
+        });
     };
 
     /**
@@ -180,6 +184,70 @@ var wizardModule = function(ModalForm, Notification, Str) {
     };
 
     /**
+     * Bind modal listeners.
+     *
+     * @param {ModalForm} modalForm The modal form instance.
+     * @param {number} courseid The current course id.
+     * @param {number} step The current wizard step.
+     * @returns {void}
+     */
+    var bindModalEvents = function(modalForm, courseid, step) {
+        modalForm.addEventListener(modalForm.events.FORM_SUBMITTED, function(event) {
+            handleSubmittedEvent(modalForm, courseid, event).catch(Notification.exception);
+        });
+
+        modalForm.addEventListener(modalForm.events.FORM_CANCELLED, function(event) {
+            if (event.preventDefault) {
+                event.preventDefault();
+            }
+
+            handleBackNavigation(modalForm, step).catch(Notification.exception);
+        });
+    };
+
+    /**
+     * Create the modal form instance.
+     *
+     * @param {number} courseid The current course id.
+     * @param {number} step The wizard step to open.
+     * @param {number} draftid The draft id to continue.
+     * @param {string} title The modal title.
+     * @param {string} nextText The submit button text.
+     * @returns {ModalForm}
+     */
+    var createModalForm = function(courseid, step, draftid, title, nextText) {
+        return new ModalForm({
+            formClass: 'block_catquiz_feedbackwizard\\form\\wizard',
+            args: {
+                courseid: courseid,
+                step: step,
+                draftid: draftid
+            },
+            modalConfig: {
+                title: title,
+                type: 'SAVE_CANCEL',
+                large: true,
+                scrollable: true
+            },
+            saveButtonText: nextText
+        });
+    };
+
+    /**
+     * Show the modal form and update its buttons.
+     *
+     * @param {ModalForm} modalForm The modal form instance.
+     * @param {number} step The current wizard step.
+     * @param {string} backText The back button text.
+     * @returns {Promise}
+     */
+    var showModalForm = function(modalForm, step, backText) {
+        return modalForm.show().then(function() {
+            return updateModalButtons(step, backText);
+        });
+    };
+
+    /**
      * Open the CAT quiz wizard.
      *
      * @param {number} courseid The current course id.
@@ -188,54 +256,21 @@ var wizardModule = function(ModalForm, Notification, Str) {
      * @returns {Promise}
      */
     var openWizard = function(courseid, step, draftid) {
+        var saveKey;
+
         step = step || 1;
         draftid = draftid || 0;
-
-        var saveKey = step < maxSteps ? 'submitnext' : 'submitfinal';
+        saveKey = step < maxSteps ? 'submitnext' : 'submitfinal';
 
         return Promise.all([
             Str.get_string('pluginname', 'block_catquiz_feedbackwizard'),
             Str.get_string(saveKey, 'block_catquiz_feedbackwizard'),
             Str.get_string('submitprevious', 'block_catquiz_feedbackwizard')
         ]).then(function(results) {
-            var title = results[0];
-            var nextText = results[1];
-            var backText = results[2];
+            var modalForm = createModalForm(courseid, step, draftid, results[0], results[1]);
 
-            var modalForm = new ModalForm({
-                formClass: 'block_catquiz_feedbackwizard\form\wizard',
-                args: {
-                    courseid: courseid,
-                    step: step,
-                    draftid: draftid
-                },
-                modalConfig: {
-                    title: title,
-                    type: 'SAVE_CANCEL',
-                    large: true,
-                    scrollable: true
-                },
-                saveButtonText: nextText
-            });
-
-            modalForm.addEventListener(modalForm.events.FORM_SUBMITTED, function(event) {
-                return handleSubmittedEvent(modalForm, courseid, event)
-                    .catch(Notification.exception);
-            });
-
-            modalForm.addEventListener(modalForm.events.FORM_CANCELLED, function(event) {
-                if (event.preventDefault) {
-                    event.preventDefault();
-                }
-
-                return handleBackNavigation(modalForm, step).catch(Notification.exception);
-            });
-
-            return modalForm.show()
-                .then(function() {
-                    return updateModalButtons(step, backText);
-                })
-                .catch(Notification.exception);
+            bindModalEvents(modalForm, courseid, step);
+            return showModalForm(modalForm, step, results[2]);
         }).catch(Notification.exception);
     };
 
@@ -257,11 +292,21 @@ var wizardModule = function(ModalForm, Notification, Str) {
                 }
 
                 event.preventDefault();
-                var courseid = parseInt(trigger.getAttribute('data-courseid'), 10) || 0;
-                openWizard(courseid, 1, 0).catch(Notification.exception);
+                openWizard(parseInt(trigger.getAttribute('data-courseid'), 10) || 0, 1, 0)
+                    .catch(Notification.exception);
             });
         }
     };
 };
 
-define(['core_form/modalform', 'core/notification', 'core/str'], wizardModule);
+/**
+ * Export the wizard AMD module.
+ *
+ * @param {Function} ModalForm Moodle modal form constructor.
+ * @param {Object} Notification Moodle notification helper.
+ * @param {Object} Str Moodle string helper.
+ * @returns {Object}
+ */
+define(['core_form/modalform', 'core/notification', 'core/str'], function(ModalForm, Notification, Str) {
+    return wizardModule(ModalForm, Notification, Str);
+});
