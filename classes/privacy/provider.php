@@ -28,9 +28,9 @@
 
 namespace block_catquiz_feedbackwizard\privacy;
 
+use context;
 use core_privacy\local\metadata\collection;
 use core_privacy\local\request\writer;
-use context;
 
 /**
  * Privacy provider for catquiz feedback wizard block.
@@ -44,20 +44,16 @@ use context;
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements \core_privacy\local\metadata\provider, \core_privacy\local\request\plugin\provider {
-
     /**
      * Get metadata about the data stored by this plugin.
      *
-     * Returns information about what personal data is stored by the plugin
-     * and where it is stored, for GDPR compliance documentation.
-     *
-     * @param collection $collection The collection to add metadata to
-     * @return collection The updated collection with plugin metadata
+     * @param collection $collection The collection to add metadata to.
+     * @return collection The updated collection with plugin metadata.
      */
     public static function get_metadata(collection $collection): collection {
-
         $collection->add_database_table(
-            'block_catquiz_feedbackwizard', [
+            'block_catquiz_feedbackwizard',
+            [
                 'userid' => 'privacy:metadata:block_catquiz_feedbackwizard:userid',
                 'courseid' => 'privacy:metadata:block_catquiz_feedbackwizard:courseid',
                 'testid' => 'privacy:metadata:block_catquiz_feedbackwizard:testid',
@@ -72,19 +68,13 @@ class provider implements \core_privacy\local\metadata\provider, \core_privacy\l
     /**
      * Get contexts containing user data for the specified user.
      *
-     * Retrieves all course contexts where the specified user has
-     * created feedback wizard entries.
-     *
-     * @param int $userid The user ID to get contexts for
-     * @return \core_privacy\local\request\contextlist List of contexts containing user data
+     * @param int $userid The user ID to get contexts for.
+     * @return \core_privacy\local\request\contextlist List of contexts containing user data.
      */
     public static function get_contexts_for_userid(int $userid): \core_privacy\local\request\contextlist {
-
         global $DB;
 
         $contextlist = new \core_privacy\local\request\contextlist();
-
-        // Find all course contexts where this user has feedback wizard data.
         $sql = "SELECT DISTINCT ctx.id
                 FROM {block_catquiz_feedbackwizard} mf
                 JOIN {context} ctx ON ctx.instanceid = mf.courseid AND ctx.contextlevel = ?
@@ -99,37 +89,30 @@ class provider implements \core_privacy\local\metadata\provider, \core_privacy\l
     /**
      * Export user data for the specified contexts.
      *
-     * Exports all feedback wizard data for the user in the approved contexts
-     * as part of a GDPR data export request.
-     *
-     * @param \core_privacy\local\request\approved_contextlist $contextlist The approved contexts to export data for
+     * @param \core_privacy\local\request\approved_contextlist $contextlist The approved contexts.
      * @return void
      */
     public static function export_user_data(\core_privacy\local\request\approved_contextlist $contextlist) {
-
         global $DB;
 
         $userid = $contextlist->get_user()->id;
 
         foreach ($contextlist->get_contexts() as $context) {
-
-            // Only process course contexts.
             if ($context->contextlevel != CONTEXT_COURSE) {
                 continue;
             }
 
-            // Get all feedback wizard records for this user in this course.
             $records = $DB->get_records('block_catquiz_feedbackwizard', [
                 'userid' => $userid,
                 'courseid' => $context->instanceid,
             ]);
-
             $data = array_values($records);
 
-            // Export the data to the privacy export.
             writer::with_context($context)->export_data(
                 [get_string('pluginname', 'block_catquiz_feedbackwizard')],
-                (object)['records' => $data]
+                (object) [
+                    'records' => $data,
+                ]
             );
         }
     }
@@ -137,17 +120,12 @@ class provider implements \core_privacy\local\metadata\provider, \core_privacy\l
     /**
      * Delete all user data in the specified context.
      *
-     * Removes all feedback wizard data for all users within the given context.
-     * This is typically called when a course is deleted.
-     *
-     * @param context $context The context to delete data for
+     * @param context $context The context to delete data for.
      * @return void
      */
     public static function delete_data_for_all_users_in_context(context $context) {
-
         global $DB;
 
-        // Only delete data for course contexts.
         if ($context->contextlevel == CONTEXT_COURSE) {
             $DB->delete_records('block_catquiz_feedbackwizard', ['courseid' => $context->instanceid]);
         }
@@ -156,10 +134,7 @@ class provider implements \core_privacy\local\metadata\provider, \core_privacy\l
     /**
      * Delete user data for the specified user in the approved contexts.
      *
-     * Removes all feedback wizard data for the specified user within
-     * the approved contexts as part of a GDPR deletion request.
-     *
-     * @param \core_privacy\local\request\approved_contextlist $contextlist The approved contexts to delete data for
+     * @param \core_privacy\local\request\approved_contextlist $contextlist The approved contexts.
      * @return void
      */
     public static function delete_data_for_user(\core_privacy\local\request\approved_contextlist $contextlist) {
@@ -168,13 +143,10 @@ class provider implements \core_privacy\local\metadata\provider, \core_privacy\l
         $userid = $contextlist->get_user()->id;
 
         foreach ($contextlist->get_contexts() as $context) {
-
-            // Only process course contexts.
             if ($context->contextlevel != CONTEXT_COURSE) {
                 continue;
             }
 
-            // Delete all feedback wizard records for this user in this course.
             $DB->delete_records('block_catquiz_feedbackwizard', [
                 'userid' => $userid,
                 'courseid' => $context->instanceid,

@@ -17,7 +17,16 @@
 /**
  * Upgrade steps for block_catquiz_feedbackwizard.
  *
- * @param int $oldversion
+ * @package     block_catquiz_feedbackwizard
+ * @copyright   2026 OpenAI
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
+ * Execute block_catquiz_feedbackwizard upgrade steps.
+ *
+ * @package block_catquiz_feedbackwizard
+ * @param int $oldversion The currently installed version.
  * @return bool
  */
 function xmldb_block_catquiz_feedbackwizard_upgrade(int $oldversion): bool {
@@ -27,8 +36,8 @@ function xmldb_block_catquiz_feedbackwizard_upgrade(int $oldversion): bool {
 
     if ($oldversion < 2026033000) {
         $table = new xmldb_table('block_catquiz_feedbackwizard');
-
         $field = new xmldb_field('testid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'courseid');
+
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }

@@ -45,7 +45,9 @@ $string['field:scenario_notes'] = 'Scenario notes';
 $string['field:selectedtest'] = 'Selected CAT test';
 $string['field:mainscaleid'] = 'Main scale ID';
 $string['field:subscaleids'] = 'Subscale IDs';
-$string['field:subscaleids_help'] = 'Enter subscale IDs as a comma-separated list. A dedicated picker can replace this in a later patch.';
+$string['field:subscaleids_help'] =
+    'Enter subscale IDs as a comma-separated list. ' .
+    'A dedicated picker can replace this in a later patch.';
 $string['field:goal'] = 'Test goal';
 $string['field:timelimitminutes'] = 'Time limit in minutes';
 $string['field:questioncount'] = 'Question count';
@@ -80,13 +82,14 @@ $string['readiness:configured'] = 'Configured';
 
 $string['review:courseid'] = 'Course ID: {$a}';
 $string['review:test'] = 'CAT test: {$a}';
-$string['review:hint'] = 'This patch stores the wizard state as draft data. Writing back into local_catquiz_tests.json should happen in the next implementation wave.';
+$string['review:writeback'] =
+    'Saving this step writes the current wizard state back into local_catquiz_tests.json.';
 
 $string['submitprevious'] = 'Back';
 $string['submitnext'] = 'Continue';
-$string['submitfinal'] = 'Save draft';
+$string['submitfinal'] = 'Apply configuration';
 $string['savedprogress'] = 'Wizard progress saved.';
-$string['submissionsuccess'] = 'The CATQuiz wizard draft has been submitted.';
+$string['submissionsuccess'] = 'The CAT test configuration was written to local_catquiz_tests.';
 $string['error:permissiondenied'] = 'You do not have permission to use this wizard.';
 $string['error:invalidstep'] = 'Invalid wizard step.';
 $string['error:nonnegative'] = 'Please enter a non-negative value.';
@@ -99,3 +102,4 @@ $string['link:edittests'] = 'Open test administration';
 
 $string['catquiz_feedbackwizard:addinstance'] = 'Add a new CATQuiz wizard block';
 $string['catquiz_feedbackwizard:use'] = 'Use the CATQuiz wizard';
+

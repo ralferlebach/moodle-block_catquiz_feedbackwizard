@@ -18,6 +18,7 @@ namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
 use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
+use block_catquiz_feedbackwizard\local\service\test_config_writer;
 use context_course;
 use core_form\dynamic_form;
 use moodle_url;
@@ -206,7 +207,12 @@ class wizard extends dynamic_form {
             foreach ($candidates as $candidate) {
                 $options[$candidate->id] = format_string($candidate->name) . ' — ' . $candidate->readinesslabel;
             }
-            $mform->addElement('select', 'sourcetestid', get_string('field:sourcetestid', 'block_catquiz_feedbackwizard'), $options);
+            $mform->addElement(
+                'select',
+                'sourcetestid',
+                get_string('field:sourcetestid', 'block_catquiz_feedbackwizard'),
+                $options
+            );
             $mform->setType('sourcetestid', PARAM_INT);
         }
 
@@ -296,7 +302,12 @@ class wizard extends dynamic_form {
             'medium' => get_string('precision:medium', 'block_catquiz_feedbackwizard'),
             'high' => get_string('precision:high', 'block_catquiz_feedbackwizard'),
         ];
-        $mform->addElement('select', 'precisionmode', get_string('field:precisionmode', 'block_catquiz_feedbackwizard'), $precision);
+        $mform->addElement(
+            'select',
+            'precisionmode',
+            get_string('field:precisionmode', 'block_catquiz_feedbackwizard'),
+            $precision
+        );
         $mform->setType('precisionmode', PARAM_ALPHA);
         $mform->setDefault('precisionmode', 'medium');
     }
@@ -318,7 +329,7 @@ class wizard extends dynamic_form {
         $summary = [
             get_string('review:courseid', 'block_catquiz_feedbackwizard', $courseid),
             get_string('review:test', 'block_catquiz_feedbackwizard', $testlabel),
-            get_string('review:hint', 'block_catquiz_feedbackwizard'),
+            get_string('review:writeback', 'block_catquiz_feedbackwizard'),
         ];
         $mform->addElement('static', 'reviewsummary', '', \html_writer::alist($summary));
     }
@@ -437,6 +448,8 @@ class wizard extends dynamic_form {
             ];
         }
 
+        test_config_writer::write_from_wizard_state($testid, $merged);
+
         $draft->set('status', 'submitted');
         $draft->set('timemodified', time());
         $draft->save();
@@ -445,6 +458,7 @@ class wizard extends dynamic_form {
             'status' => 'submitted',
             'message' => get_string('submissionsuccess', 'block_catquiz_feedbackwizard'),
             'recordid' => $draft->get('id'),
+            'testid' => $testid,
         ];
     }
 
