@@ -73,7 +73,11 @@ class test_config_normalizer {
             'completionenabled' => self::extract_completion_enabled($jsondata, $wizarddata),
         ];
 
-        return array_merge($defaults, self::build_feedback_defaults($jsondata, $wizarddata, $mainscaleid, $subscaleids));
+        return array_merge(
+            $defaults,
+            self::build_feedback_defaults($jsondata, $wizarddata, $mainscaleid, $subscaleids),
+            self::extract_matching_defaults($wizarddata)
+        );
     }
 
     /**
@@ -363,14 +367,6 @@ class test_config_normalizer {
         $ranges = self::extract_feedback_ranges($jsondata, $wizarddata, $mainscaleid, $rangecount, $range['min'], $range['max']);
 
         $defaults = [
-            'feedbackmode' => self::normalise_feedback_mode((string)($wizarddata['feedbackmode'] ?? 'fixed')),
-            'feedbackdisplaymode' => self::normalise_feedback_display_mode(
-                (string)($wizarddata['feedbackdisplaymode'] ?? 'text_only')
-            ),
-            'feedbackvariablepreset' => self::normalise_feedback_variable_preset(
-                (string)($wizarddata['feedbackvariablepreset'] ?? 'equal')
-            ),
-            'feedbackcsvranges' => (string)($wizarddata['feedbackcsvranges'] ?? ''),
             'feedbackrangecount' => $rangecount,
             'reportingstrategy' => $reportingstrategy,
         ];
@@ -392,14 +388,6 @@ class test_config_normalizer {
             $ranges = self::build_default_feedback_ranges($rangecount, $minimum, $maximum);
         }
         $defaults = [
-            'feedbackmode' => self::normalise_feedback_mode((string)($state['feedbackmode'] ?? 'fixed')),
-            'feedbackdisplaymode' => self::normalise_feedback_display_mode(
-                (string)($state['feedbackdisplaymode'] ?? 'text_only')
-            ),
-            'feedbackvariablepreset' => self::normalise_feedback_variable_preset(
-                (string)($state['feedbackvariablepreset'] ?? 'equal')
-            ),
-            'feedbackcsvranges' => (string)($state['feedbackcsvranges'] ?? ''),
             'feedbackrangecount' => $rangecount,
             'reportingstrategy' => (string)($state['reportingstrategy'] ?? 'main_only'),
         ];
@@ -419,46 +407,6 @@ class test_config_normalizer {
         return $rangecount;
     }
 
-
-    /**
-     * Normalise the configured feedback mode.
-     *
-     * @param string $mode
-     * @return string
-     */
-    public static function normalise_feedback_mode(string $mode): string {
-        if (!in_array($mode, ['fixed', 'variable', 'csv'], true)) {
-            return 'fixed';
-        }
-        return $mode;
-    }
-
-    /**
-     * Normalise the configured feedback display mode.
-     *
-     * @param string $mode
-     * @return string
-     */
-    public static function normalise_feedback_display_mode(string $mode): string {
-        if (!in_array($mode, ['text_only', 'text_and_graphic', 'text_and_scores'], true)) {
-            return 'text_only';
-        }
-        return $mode;
-    }
-
-    /**
-     * Normalise the configured variable range preset.
-     *
-     * @param string $preset
-     * @return string
-     */
-    public static function normalise_feedback_variable_preset(string $preset): string {
-        if (!in_array($preset, ['equal', 'focus_low', 'focus_high'], true)) {
-            return 'equal';
-        }
-        return $preset;
-    }
-
     /**
      * Extract feedback ranges from the wizard state.
      *
@@ -474,8 +422,6 @@ class test_config_normalizer {
         float $minimum,
         float $maximum
     ): array {
-        $feedbackmode = self::normalise_feedback_mode((string)($state['feedbackmode'] ?? 'fixed'));
-
         if (!empty($state['feedbackranges']) && is_array($state['feedbackranges'])) {
             $ranges = [];
             foreach ((array)$state['feedbackranges'] as $range) {
@@ -484,7 +430,9 @@ class test_config_normalizer {
                     'lower' => (isset($range['lower']) && $range['lower'] !== '') ? (float)$range['lower'] : null,
                     'upper' => (isset($range['upper']) && $range['upper'] !== '') ? (float)$range['upper'] : null,
                     'text' => (string)($range['text'] ?? ''),
-                    'templateformat' => (string)($range['templateformat'] ?? 'mustache'),
+                    'templateformat' => feedback_template_service::normalise_template_format(
+                        (string)($range['templateformat'] ?? 'mustache')
+                    ),
                     'actioncourseenabled' => !empty($range['actioncourseenabled']) ? 1 : 0,
                     'actioncoursetarget' => (string)($range['actioncoursetarget'] ?? ''),
                     'actiongroupenabled' => !empty($range['actiongroupenabled']) ? 1 : 0,
@@ -496,26 +444,21 @@ class test_config_normalizer {
             }
         }
 
-        if ($feedbackmode === 'csv') {
-            $ranges = self::parse_csv_feedback_ranges((string)($state['feedbackcsvranges'] ?? ''));
-            if (!empty($ranges)) {
-                return self::apply_state_overrides_to_ranges($ranges, $state, $minimum, $maximum);
-            }
-        }
-
-        if ($feedbackmode === 'variable') {
-            $ranges = self::build_variable_feedback_ranges(
-                $rangecount,
-                $minimum,
-                $maximum,
-                self::normalise_feedback_variable_preset((string)($state['feedbackvariablepreset'] ?? 'equal'))
-            );
-            return self::apply_state_overrides_to_ranges($ranges, $state, $minimum, $maximum);
-        }
-
         $ranges = [];
         for ($index = 1; $index <= $rangecount; $index++) {
-            $ranges[] = self::build_feedback_range_from_state($state, $index);
+            $ranges[] = [
+                'label' => (string)($state['feedbacklabel_' . $index] ?? ''),
+                'lower' => isset($state['feedbacklower_' . $index]) ? (float)$state['feedbacklower_' . $index] : null,
+                'upper' => isset($state['feedbackupper_' . $index]) ? (float)$state['feedbackupper_' . $index] : null,
+                'text' => (string)($state['feedbacktext_' . $index] ?? ''),
+                'templateformat' => feedback_template_service::normalise_template_format(
+                    (string)($state['feedbacktemplateformat_' . $index] ?? 'mustache')
+                ),
+                'actioncourseenabled' => !empty($state['feedbackactioncourseenabled_' . $index]) ? 1 : 0,
+                'actioncoursetarget' => (string)($state['feedbackactioncoursetarget_' . $index] ?? ''),
+                'actiongroupenabled' => !empty($state['feedbackactiongroupenabled_' . $index]) ? 1 : 0,
+                'actiongrouptarget' => (string)($state['feedbackactiongrouptarget_' . $index] ?? ''),
+            ];
         }
 
         if (self::has_non_empty_feedback_ranges($ranges)) {
@@ -611,7 +554,7 @@ class test_config_normalizer {
                     ? (float)$jsondata['feedback_scaleid_limit_upper_' . $mainscaleid . '_' . $index]
                     : null,
                 'text' => self::extract_feedback_text($jsondata, $mainscaleid, $index),
-                'templateformat' => 'mustache',
+                'templateformat' => feedback_template_service::normalise_template_format('mustache'),
                 'actioncourseenabled' => 0,
                 'actioncoursetarget' => '',
                 'actiongroupenabled' => 0,
@@ -624,150 +567,6 @@ class test_config_normalizer {
         }
 
         return self::build_default_feedback_ranges($rangecount, $minimum, $maximum);
-    }
-
-
-    /**
-     * Parse CSV-based feedback ranges.
-     *
-     * @param string $csvranges
-     * @return array
-     */
-    public static function parse_csv_feedback_ranges(string $csvranges): array {
-        $lines = preg_split('/\r\n|\r|\n/', trim($csvranges));
-        if (empty($lines)) {
-            return [];
-        }
-
-        $ranges = [];
-        foreach ($lines as $lineindex => $line) {
-            $line = trim($line);
-            if ($line === '') {
-                continue;
-            }
-            $columns = str_getcsv($line);
-            if ($lineindex === 0 && isset($columns[0], $columns[1], $columns[2])) {
-                $header = array_map('core_text::strtolower', array_map('trim', array_slice($columns, 0, 3)));
-                if ($header === ['label', 'lower', 'upper']) {
-                    continue;
-                }
-            }
-            if (count($columns) < 4) {
-                return [];
-            }
-            $ranges[] = [
-                'label' => trim((string)$columns[0]),
-                'lower' => is_numeric(trim((string)$columns[1])) ? (float)trim((string)$columns[1]) : null,
-                'upper' => is_numeric(trim((string)$columns[2])) ? (float)trim((string)$columns[2]) : null,
-                'text' => trim((string)$columns[3]),
-                'templateformat' => !empty($columns[4]) ? trim((string)$columns[4]) : 'mustache',
-                'actioncourseenabled' => 0,
-                'actioncoursetarget' => '',
-                'actiongroupenabled' => 0,
-                'actiongrouptarget' => '',
-            ];
-        }
-
-        return $ranges;
-    }
-
-    /**
-     * Build variable feedback ranges from a preset.
-     *
-     * @param int $rangecount
-     * @param float $minimum
-     * @param float $maximum
-     * @param string $preset
-     * @return array
-     */
-    public static function build_variable_feedback_ranges(
-        int $rangecount,
-        float $minimum,
-        float $maximum,
-        string $preset
-    ): array {
-        $rangecount = self::normalise_feedback_range_count($rangecount);
-        $equal = self::build_default_feedback_ranges($rangecount, $minimum, $maximum);
-        if ($preset === 'equal') {
-            return $equal;
-        }
-
-        $weights = [];
-        if ($preset === 'focus_low') {
-            for ($index = 0; $index < $rangecount; $index++) {
-                $weights[] = $rangecount - $index;
-            }
-        } else {
-            for ($index = 0; $index < $rangecount; $index++) {
-                $weights[] = $index + 1;
-            }
-        }
-
-        $span = $maximum - $minimum;
-        $totalweight = array_sum($weights) ?: 1;
-        $cursor = $minimum;
-        $ranges = [];
-        foreach ($weights as $index => $weight) {
-            $width = $span * ($weight / $totalweight);
-            $upper = $index === ($rangecount - 1) ? $maximum : $cursor + $width;
-            $ranges[] = [
-                'label' => 'Range ' . ($index + 1),
-                'lower' => round($cursor, 2),
-                'upper' => round($upper, 2),
-                'text' => 'Feedback for {{result.ranklabel}} in {{result.scalename}}.',
-                'templateformat' => 'mustache',
-                'actioncourseenabled' => 0,
-                'actioncoursetarget' => '',
-                'actiongroupenabled' => 0,
-                'actiongrouptarget' => '',
-            ];
-            $cursor = $upper;
-        }
-
-        return $ranges;
-    }
-
-    /**
-     * Apply explicit state fields to generated feedback ranges.
-     *
-     * @param array $ranges
-     * @param array $state
-     * @param float $minimum
-     * @param float $maximum
-     * @return array
-     */
-    protected static function apply_state_overrides_to_ranges(array $ranges, array $state, float $minimum, float $maximum): array {
-        foreach ($ranges as $index => $range) {
-            $stateindex = $index + 1;
-            $override = self::build_feedback_range_from_state($state, $stateindex);
-            foreach ($override as $key => $value) {
-                if ($value !== null && $value !== '') {
-                    $ranges[$index][$key] = $value;
-                }
-            }
-        }
-        return self::merge_feedback_ranges_with_defaults($ranges, $minimum, $maximum);
-    }
-
-    /**
-     * Build one feedback range from flat state fields.
-     *
-     * @param array $state
-     * @param int $index
-     * @return array
-     */
-    protected static function build_feedback_range_from_state(array $state, int $index): array {
-        return [
-            'label' => (string)($state['feedbacklabel_' . $index] ?? ''),
-            'lower' => isset($state['feedbacklower_' . $index]) ? (float)$state['feedbacklower_' . $index] : null,
-            'upper' => isset($state['feedbackupper_' . $index]) ? (float)$state['feedbackupper_' . $index] : null,
-            'text' => (string)($state['feedbacktext_' . $index] ?? ''),
-            'templateformat' => (string)($state['feedbacktemplateformat_' . $index] ?? 'mustache'),
-            'actioncourseenabled' => !empty($state['feedbackactioncourseenabled_' . $index]) ? 1 : 0,
-            'actioncoursetarget' => (string)($state['feedbackactioncoursetarget_' . $index] ?? ''),
-            'actiongroupenabled' => !empty($state['feedbackactiongroupenabled_' . $index]) ? 1 : 0,
-            'actiongrouptarget' => (string)($state['feedbackactiongrouptarget_' . $index] ?? ''),
-        ];
     }
 
     /**
@@ -818,7 +617,7 @@ class test_config_normalizer {
                 'lower' => round($lower, 2),
                 'upper' => round($upper, 2),
                 'text' => 'Feedback for {{result.ranklabel}} in {{result.scalename}}.',
-                'templateformat' => 'mustache',
+                'templateformat' => feedback_template_service::normalise_template_format('mustache'),
                 'actioncourseenabled' => 0,
                 'actioncoursetarget' => '',
                 'actiongroupenabled' => 0,
@@ -883,6 +682,51 @@ class test_config_normalizer {
      * @param int $rangeindex
      * @return string
      */
+
+
+    /**
+     * Extract matching defaults from wizard-owned JSON.
+     *
+     * @param array $wizarddata
+     * @return array
+     */
+    public static function extract_matching_defaults(array $wizarddata): array {
+        $matching = self::extract_matching_block($wizarddata);
+        return [
+            'matchingmode' => (string)($matching['mode'] ?? 'none'),
+            'matchingcategoryid' => (int)($matching['categoryid'] ?? 0),
+            'matchingcoursefield' => (string)($matching['coursefield'] ?? 'shortname'),
+            'matchingoperator' => (string)($matching['operator'] ?? 'contains'),
+            'matchingpattern' => (string)($matching['pattern'] ?? ''),
+            'matchingtargettype' => (string)($matching['targettype'] ?? 'catscale'),
+            'matchingtargetvalue' => (string)($matching['targetvalue'] ?? ''),
+            'matchingcsvdefinition' => (string)($matching['csvdefinition'] ?? ''),
+        ];
+    }
+
+    /**
+     * Extract the nested matching block or fall back to flat fields.
+     *
+     * @param array $wizarddata
+     * @return array
+     */
+    protected static function extract_matching_block(array $wizarddata): array {
+        if (!empty($wizarddata['matching']) && is_array($wizarddata['matching'])) {
+            return $wizarddata['matching'];
+        }
+
+        return [
+            'mode' => (string)($wizarddata['matchingmode'] ?? 'none'),
+            'categoryid' => (int)($wizarddata['matchingcategoryid'] ?? 0),
+            'coursefield' => (string)($wizarddata['matchingcoursefield'] ?? 'shortname'),
+            'operator' => (string)($wizarddata['matchingoperator'] ?? 'contains'),
+            'pattern' => (string)($wizarddata['matchingpattern'] ?? ''),
+            'targettype' => (string)($wizarddata['matchingtargettype'] ?? 'catscale'),
+            'targetvalue' => (string)($wizarddata['matchingtargetvalue'] ?? ''),
+            'csvdefinition' => (string)($wizarddata['matchingcsvdefinition'] ?? ''),
+        ];
+    }
+
     protected static function extract_feedback_text(array $jsondata, int $scaleid, int $rangeindex): string {
         $value = $jsondata['feedbackeditor_scaleid_' . $scaleid . '_' . $rangeindex] ?? '';
         if (is_array($value)) {

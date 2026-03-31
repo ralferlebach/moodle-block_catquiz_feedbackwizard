@@ -38,28 +38,31 @@ use block_catquiz_feedbackwizard\local\service\feedback_template_service;
  */
 final class feedback_template_service_test extends \advanced_testcase {
     /**
-     * Test rendering a preview from a supported token map.
+     * Test extracting and validating tokens.
      *
+     * @covers ::extract_tokens
+     * @covers ::get_unknown_tokens
+     * @return void
+     */
+    public function test_extract_tokens_and_unknown_tokens(): void {
+        $text = 'Hello {{ result.ranklabel }} {{unknown.token}}';
+
+        $this->assertSame(['result.ranklabel', 'unknown.token'], feedback_template_service::extract_tokens($text));
+        $this->assertSame(['unknown.token'], feedback_template_service::get_unknown_tokens($text));
+    }
+
+    /**
+     * Test simple preview rendering.
+     *
+     * @covers ::normalise_template_format
      * @covers ::render_preview
      * @return void
      */
     public function test_render_preview(): void {
-        $preview = feedback_template_service::render_preview(
-            'Hello {{user.firstname}}, you are in {{result.ranklabel}}.',
-            'mustache'
-        );
+        $mustache = 'Status: {{ result.ranklabel }}';
 
-        $this->assertSame('Hello Alex, you are in Support.', $preview);
-    }
-
-    /**
-     * Test normalising the template format selector.
-     *
-     * @covers ::normalise_template_format
-     * @return void
-     */
-    public function test_normalise_template_format(): void {
-        $this->assertSame('plain', feedback_template_service::normalise_template_format('plain'));
-        $this->assertSame('mustache', feedback_template_service::normalise_template_format('markdown'));
+        $this->assertSame('Status: Support', feedback_template_service::render_preview($mustache, 'mustache'));
+        $this->assertSame('Plain text', feedback_template_service::render_preview('Plain text', 'plain'));
+        $this->assertSame('mustache', feedback_template_service::normalise_template_format('unsupported'));
     }
 }

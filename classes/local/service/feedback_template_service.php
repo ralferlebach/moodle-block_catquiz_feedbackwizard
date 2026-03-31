@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Provides supported feedback template tokens and simple preview rendering.
+ * Helper methods for feedback text templates.
  *
  * @package     block_catquiz_feedbackwizard
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
@@ -25,90 +25,97 @@
 namespace block_catquiz_feedbackwizard\local\service;
 
 /**
- * Provides supported feedback template tokens and simple preview rendering.
+ * Helper methods for feedback text templates.
  *
  * @package     block_catquiz_feedbackwizard
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class feedback_template_service {
+    /** @var array Supported tokens for simple preview rendering. */
+    const SUPPORTED_TOKENS = [
+        'course.fullname' => 'Example course',
+        'result.ranklabel' => 'Support',
+        'result.scalename' => 'Main scale',
+        'test.name' => 'Example CAT test',
+    ];
+
     /**
-     * Get supported feedback tokens and their sample values.
+     * Normalise one template format value.
+     *
+     * @param string $templateformat
+     * @return string
+     */
+    public static function normalise_template_format(string $templateformat): string {
+        return $templateformat === 'plain' ? 'plain' : 'mustache';
+    }
+
+    /**
+     * Return supported token placeholders.
      *
      * @return array
      */
     public static function get_supported_tokens(): array {
-        return [
-            '{{course.fullname}}' => [
-                'description' => get_string('token:coursefullname', 'block_catquiz_feedbackwizard'),
-                'sample' => 'Placement English B1',
-            ],
-            '{{result.ranklabel}}' => [
-                'description' => get_string('token:resultranklabel', 'block_catquiz_feedbackwizard'),
-                'sample' => 'Support',
-            ],
-            '{{result.scalename}}' => [
-                'description' => get_string('token:resultscalename', 'block_catquiz_feedbackwizard'),
-                'sample' => 'Overall language scale',
-            ],
-            '{{result.score}}' => [
-                'description' => get_string('token:resultscore', 'block_catquiz_feedbackwizard'),
-                'sample' => '0.82',
-            ],
-            '{{test.name}}' => [
-                'description' => get_string('token:testname', 'block_catquiz_feedbackwizard'),
-                'sample' => 'CAT placement test',
-            ],
-            '{{user.firstname}}' => [
-                'description' => get_string('token:userfirstname', 'block_catquiz_feedbackwizard'),
-                'sample' => 'Alex',
-            ],
-        ];
+        return array_keys(self::SUPPORTED_TOKENS);
     }
 
     /**
-     * Normalise the stored template format.
+     * Build token help text for the wizard.
      *
-     * @param string $format
      * @return string
      */
-    public static function normalise_template_format(string $format): string {
-        return $format === 'plain' ? 'plain' : 'mustache';
+    public static function build_token_help_text(): string {
+        $tokens = array_map(static function(string $token): string {
+            return '{{' . $token . '}}';
+        }, self::get_supported_tokens());
+
+        return implode(', ', $tokens);
     }
 
     /**
-     * Render a simple preview from a template and optional token map.
+     * Extract used tokens from one feedback text.
      *
-     * @param string $template
-     * @param string $format
-     * @param array $tokens
-     * @return string
+     * @param string $text
+     * @return array
      */
-    public static function render_preview(string $template, string $format, array $tokens = []): string {
-        if (self::normalise_template_format($format) === 'plain') {
-            return $template;
+    public static function extract_tokens(string $text): array {
+        if ($text == '') {
+            return [];
         }
 
-        $replacements = [];
-        foreach (self::get_supported_tokens() as $token => $definition) {
-            $replacements[$token] = (string)($tokens[$token] ?? $definition['sample']);
-        }
-
-        return strtr($template, $replacements);
+        preg_match_all('/{{\s*([a-z0-9_\.]+)\s*}}/i', $text, $matches);
+        $tokens = array_values(array_unique($matches[1] ?? []));
+        sort($tokens);
+        return $tokens;
     }
 
     /**
-     * Build a short HTML help block listing supported template tokens.
+     * Return unsupported tokens used in one feedback text.
      *
+     * @param string $text
+     * @return array
+     */
+    public static function get_unknown_tokens(string $text): array {
+        return array_values(array_diff(self::extract_tokens($text), self::get_supported_tokens()));
+    }
+
+    /**
+     * Render a simple preview for one feedback text.
+     *
+     * @param string $text
+     * @param string $templateformat
      * @return string
      */
-    public static function get_token_help_html(): string {
-        $items = [];
-        foreach (self::get_supported_tokens() as $token => $definition) {
-            $items[] = '<li><code>' . s($token) . '</code>: ' . s((string)$definition['description']) . '</li>';
+    public static function render_preview(string $text, string $templateformat): string {
+        $templateformat = self::normalise_template_format($templateformat);
+        if ($templateformat === 'plain') {
+            return $text;
         }
 
-        return '<p>' . s(get_string('message:feedbacktokenintro', 'block_catquiz_feedbackwizard')) . '</p>'
-            . '<ul>' . implode('', $items) . '</ul>';
+        $preview = $text;
+        foreach (self::SUPPORTED_TOKENS as $token => $value) {
+            $preview = preg_replace('/{{\s*' . preg_quote($token, '/') . '\s*}}/', $value, $preview);
+        }
+        return $preview;
     }
 }

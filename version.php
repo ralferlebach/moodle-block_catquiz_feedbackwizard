@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'block_catquiz_feedbackwizard';
-$plugin->release = '0.3.2';
+$plugin->release = '0.4.0';
 $plugin->version = 2026033107;
 $plugin->requires = 2022112800;
 $plugin->dependencies = [
