@@ -25,6 +25,7 @@
 namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
+use block_catquiz_feedbackwizard\local\service\feedback_template_service;
 use block_catquiz_feedbackwizard\local\service\scenario_preset_service;
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
 use block_catquiz_feedbackwizard\local\service\test_config_writer;
@@ -410,7 +411,7 @@ class wizard extends dynamic_form {
             'static',
             'feedbacktokeninfo',
             '',
-            get_string('message:feedbacktokeninfo', 'block_catquiz_feedbackwizard')
+            feedback_template_service::get_token_help_html()
         );
 
         $rangecount = (int)$feedbackdefaults['feedbackrangecount'];
@@ -814,6 +815,13 @@ class wizard extends dynamic_form {
                 s((string)($feedbackfields['feedbackupper_' . $index] ?? '')) . ']';
             $summary[] = get_string('field:feedbacktemplateformat', 'block_catquiz_feedbackwizard', $index) . ': ' .
                 s($this->get_template_format_label((string)($feedbackfields['feedbacktemplateformat_' . $index] ?? 'mustache')));
+            $preview = feedback_template_service::render_preview(
+                (string)($feedbackfields['feedbacktext_' . $index] ?? ''),
+                (string)($feedbackfields['feedbacktemplateformat_' . $index] ?? 'mustache')
+            );
+            if ($preview !== '') {
+                $summary[] = get_string('field:feedbackpreview', 'block_catquiz_feedbackwizard', $index) . ': ' . s($preview);
+            }
             $summary[] = get_string('field:feedbackactionsummary', 'block_catquiz_feedbackwizard', $index) . ': ' .
                 s($this->describe_feedback_actions($feedbackfields, $index));
         }

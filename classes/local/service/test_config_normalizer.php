@@ -25,6 +25,7 @@
 namespace block_catquiz_feedbackwizard\local\service;
 
 use block_catquiz_feedbackwizard\catquiz_data;
+use block_catquiz_feedbackwizard\local\service\feedback_template_service;
 
 /**
  * Normalises local_catquiz test JSON into wizard defaults.
@@ -426,7 +427,7 @@ class test_config_normalizer {
                     'lower' => (isset($range['lower']) && $range['lower'] !== '') ? (float)$range['lower'] : null,
                     'upper' => (isset($range['upper']) && $range['upper'] !== '') ? (float)$range['upper'] : null,
                     'text' => (string)($range['text'] ?? ''),
-                    'templateformat' => (string)($range['templateformat'] ?? 'mustache'),
+                    'templateformat' => feedback_template_service::normalise_template_format((string)($range['templateformat'] ?? 'mustache')),
                     'actioncourseenabled' => !empty($range['actioncourseenabled']) ? 1 : 0,
                     'actioncoursetarget' => (string)($range['actioncoursetarget'] ?? ''),
                     'actiongroupenabled' => !empty($range['actiongroupenabled']) ? 1 : 0,
@@ -445,7 +446,7 @@ class test_config_normalizer {
                 'lower' => isset($state['feedbacklower_' . $index]) ? (float)$state['feedbacklower_' . $index] : null,
                 'upper' => isset($state['feedbackupper_' . $index]) ? (float)$state['feedbackupper_' . $index] : null,
                 'text' => (string)($state['feedbacktext_' . $index] ?? ''),
-                'templateformat' => (string)($state['feedbacktemplateformat_' . $index] ?? 'mustache'),
+                'templateformat' => feedback_template_service::normalise_template_format((string)($state['feedbacktemplateformat_' . $index] ?? 'mustache')),
                 'actioncourseenabled' => !empty($state['feedbackactioncourseenabled_' . $index]) ? 1 : 0,
                 'actioncoursetarget' => (string)($state['feedbackactioncoursetarget_' . $index] ?? ''),
                 'actiongroupenabled' => !empty($state['feedbackactiongroupenabled_' . $index]) ? 1 : 0,

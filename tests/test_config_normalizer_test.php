@@ -134,7 +134,7 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame(0, $defaults['completionenabled']);
         $this->assertSame(2, $defaults['feedbackrangecount']);
         $this->assertSame('main_only', $defaults['reportingstrategy']);
-        $this->assertSame('Range 1', $defaults['feedbacklabel_1']);
+        $this->assertSame('Support', $defaults['feedbacklabel_1']);
         $this->assertSame(-3.0, $defaults['feedbacklower_1']);
         $this->assertSame('Needs support', $defaults['feedbacktext_1']);
         $this->assertSame('plain', $defaults['feedbacktemplateformat_1']);

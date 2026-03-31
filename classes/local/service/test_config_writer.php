@@ -25,6 +25,7 @@
 namespace block_catquiz_feedbackwizard\local\service;
 
 use block_catquiz_feedbackwizard\catquiz_data;
+use block_catquiz_feedbackwizard\local\service\feedback_template_service;
 
 /**
  * Writes wizard state back into local_catquiz_tests.
