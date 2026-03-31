@@ -68,10 +68,20 @@ final class test_config_writer_test extends \advanced_testcase {
             'feedbacklower_1' => -3.0,
             'feedbackupper_1' => 0.0,
             'feedbacktext_1' => 'Please keep practising.',
+            'feedbacktemplateformat_1' => 'mustache',
+            'feedbackactioncourseenabled_1' => 1,
+            'feedbackactioncoursetarget_1' => 'COURSE-101,COURSE-102',
+            'feedbackactiongroupenabled_1' => 1,
+            'feedbackactiongrouptarget_1' => 'GROUP-A',
             'feedbacklabel_2' => 'On track',
             'feedbacklower_2' => 0.0,
             'feedbackupper_2' => 3.0,
             'feedbacktext_2' => 'You are doing well.',
+            'feedbacktemplateformat_2' => 'plain',
+            'feedbackactioncourseenabled_2' => 0,
+            'feedbackactioncoursetarget_2' => '',
+            'feedbackactiongroupenabled_2' => 0,
+            'feedbackactiongrouptarget_2' => '',
         ];
 
         $mapped = test_config_writer::apply_wizard_state($jsondata, $wizardstate);
@@ -100,6 +110,12 @@ final class test_config_writer_test extends \advanced_testcase {
         $this->assertSame('placement', $mapped['catquiz_wizard']['testgoal']);
         $this->assertSame('main_only', $mapped['catquiz_wizard']['reportingstrategy']);
         $this->assertCount(2, $mapped['catquiz_wizard']['feedbackranges']);
+        $this->assertSame('mustache', $mapped['catquiz_wizard']['feedbackranges'][0]['templateformat']);
+        $this->assertSame(1, $mapped['catquiz_wizard']['feedbackranges'][0]['actioncourseenabled']);
+        $this->assertSame('COURSE-101,COURSE-102', $mapped['catquiz_wizard']['feedbackranges'][0]['actioncoursetarget']);
+        $this->assertSame(1, $mapped['catquiz_wizard']['feedbackranges'][0]['actiongroupenabled']);
+        $this->assertSame('GROUP-A', $mapped['catquiz_wizard']['feedbackranges'][0]['actiongrouptarget']);
+        $this->assertSame('plain', $mapped['catquiz_wizard']['feedbackranges'][1]['templateformat']);
     }
 
     /**

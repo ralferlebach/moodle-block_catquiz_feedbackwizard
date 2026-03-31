@@ -90,6 +90,32 @@ final class test_config_normalizer_test extends \advanced_testcase {
                 'feedbackeditor_scaleid_8_1' => ['text' => 'Needs support'],
                 'feedbackeditor_scaleid_8_2' => ['text' => 'Doing well'],
                 'catquiz_scalereportcheckbox_8' => 1,
+                'catquiz_wizard' => [
+                    'feedbackranges' => [
+                        [
+                            'label' => 'Support',
+                            'lower' => -3.0,
+                            'upper' => 0.0,
+                            'text' => 'Needs support',
+                            'templateformat' => 'plain',
+                            'actioncourseenabled' => 1,
+                            'actioncoursetarget' => 'COURSE-A',
+                            'actiongroupenabled' => 1,
+                            'actiongrouptarget' => 'GROUP-A',
+                        ],
+                        [
+                            'label' => 'Success',
+                            'lower' => 0.0,
+                            'upper' => 3.0,
+                            'text' => 'Doing well',
+                            'templateformat' => 'mustache',
+                            'actioncourseenabled' => 0,
+                            'actioncoursetarget' => '',
+                            'actiongroupenabled' => 0,
+                            'actiongrouptarget' => '',
+                        ],
+                    ],
+                ],
             ]),
         ];
 
@@ -111,6 +137,11 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame('Range 1', $defaults['feedbacklabel_1']);
         $this->assertSame(-3.0, $defaults['feedbacklower_1']);
         $this->assertSame('Needs support', $defaults['feedbacktext_1']);
+        $this->assertSame('plain', $defaults['feedbacktemplateformat_1']);
+        $this->assertSame(1, $defaults['feedbackactioncourseenabled_1']);
+        $this->assertSame('COURSE-A', $defaults['feedbackactioncoursetarget_1']);
+        $this->assertSame(1, $defaults['feedbackactiongroupenabled_1']);
+        $this->assertSame('GROUP-A', $defaults['feedbackactiongrouptarget_1']);
     }
 
     /**

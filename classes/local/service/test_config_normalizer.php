@@ -380,6 +380,9 @@ class test_config_normalizer {
     public static function build_feedback_defaults_from_wizard_state(array $state, float $minimum, float $maximum): array {
         $rangecount = self::normalise_feedback_range_count((int)($state['feedbackrangecount'] ?? 0));
         $ranges = self::extract_feedback_ranges_from_state($state, $rangecount, $minimum, $maximum);
+        if (empty($ranges)) {
+            $ranges = self::build_default_feedback_ranges($rangecount, $minimum, $maximum);
+        }
         $defaults = [
             'feedbackrangecount' => $rangecount,
             'reportingstrategy' => (string)($state['reportingstrategy'] ?? 'main_only'),
@@ -423,6 +426,11 @@ class test_config_normalizer {
                     'lower' => (isset($range['lower']) && $range['lower'] !== '') ? (float)$range['lower'] : null,
                     'upper' => (isset($range['upper']) && $range['upper'] !== '') ? (float)$range['upper'] : null,
                     'text' => (string)($range['text'] ?? ''),
+                    'templateformat' => (string)($range['templateformat'] ?? 'mustache'),
+                    'actioncourseenabled' => !empty($range['actioncourseenabled']) ? 1 : 0,
+                    'actioncoursetarget' => (string)($range['actioncoursetarget'] ?? ''),
+                    'actiongroupenabled' => !empty($range['actiongroupenabled']) ? 1 : 0,
+                    'actiongrouptarget' => (string)($range['actiongrouptarget'] ?? ''),
                 ];
             }
             if (!empty($ranges)) {
@@ -437,6 +445,11 @@ class test_config_normalizer {
                 'lower' => isset($state['feedbacklower_' . $index]) ? (float)$state['feedbacklower_' . $index] : null,
                 'upper' => isset($state['feedbackupper_' . $index]) ? (float)$state['feedbackupper_' . $index] : null,
                 'text' => (string)($state['feedbacktext_' . $index] ?? ''),
+                'templateformat' => (string)($state['feedbacktemplateformat_' . $index] ?? 'mustache'),
+                'actioncourseenabled' => !empty($state['feedbackactioncourseenabled_' . $index]) ? 1 : 0,
+                'actioncoursetarget' => (string)($state['feedbackactioncoursetarget_' . $index] ?? ''),
+                'actiongroupenabled' => !empty($state['feedbackactiongroupenabled_' . $index]) ? 1 : 0,
+                'actiongrouptarget' => (string)($state['feedbackactiongrouptarget_' . $index] ?? ''),
             ];
         }
 
@@ -533,6 +546,11 @@ class test_config_normalizer {
                     ? (float)$jsondata['feedback_scaleid_limit_upper_' . $mainscaleid . '_' . $index]
                     : null,
                 'text' => self::extract_feedback_text($jsondata, $mainscaleid, $index),
+                'templateformat' => 'mustache',
+                'actioncourseenabled' => 0,
+                'actioncoursetarget' => '',
+                'actiongroupenabled' => 0,
+                'actiongrouptarget' => '',
             ];
         }
 
@@ -557,6 +575,11 @@ class test_config_normalizer {
             $fields['feedbacklower_' . $fieldindex] = (float)($range['lower'] ?? 0);
             $fields['feedbackupper_' . $fieldindex] = (float)($range['upper'] ?? 0);
             $fields['feedbacktext_' . $fieldindex] = (string)($range['text'] ?? '');
+            $fields['feedbacktemplateformat_' . $fieldindex] = (string)($range['templateformat'] ?? 'mustache');
+            $fields['feedbackactioncourseenabled_' . $fieldindex] = !empty($range['actioncourseenabled']) ? 1 : 0;
+            $fields['feedbackactioncoursetarget_' . $fieldindex] = (string)($range['actioncoursetarget'] ?? '');
+            $fields['feedbackactiongroupenabled_' . $fieldindex] = !empty($range['actiongroupenabled']) ? 1 : 0;
+            $fields['feedbackactiongrouptarget_' . $fieldindex] = (string)($range['actiongrouptarget'] ?? '');
         }
         return $fields;
     }
@@ -586,6 +609,11 @@ class test_config_normalizer {
                 'lower' => round($lower, 2),
                 'upper' => round($upper, 2),
                 'text' => 'Feedback for {{result.ranklabel}} in {{result.scalename}}.',
+                'templateformat' => 'mustache',
+                'actioncourseenabled' => 0,
+                'actioncoursetarget' => '',
+                'actiongroupenabled' => 0,
+                'actiongrouptarget' => '',
             ];
         }
         return $ranges;
@@ -602,7 +630,19 @@ class test_config_normalizer {
     protected static function merge_feedback_ranges_with_defaults(array $ranges, float $minimum, float $maximum): array {
         $defaults = self::build_default_feedback_ranges(count($ranges), $minimum, $maximum);
         foreach ($ranges as $index => $range) {
-            foreach (['label', 'lower', 'upper', 'text'] as $key) {
+            foreach (
+                [
+                    'label',
+                    'lower',
+                    'upper',
+                    'text',
+                    'templateformat',
+                    'actioncourseenabled',
+                    'actioncoursetarget',
+                    'actiongroupenabled',
+                    'actiongrouptarget',
+                ] as $key
+            ) {
                 if ($range[$key] === null || $range[$key] === '') {
                     $ranges[$index][$key] = $defaults[$index][$key];
                 }

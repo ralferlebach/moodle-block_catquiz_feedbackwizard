@@ -454,6 +454,75 @@ class wizard extends dynamic_form {
             );
             $mform->setType('feedbacktext_' . $index, PARAM_RAW);
             $mform->setDefault('feedbacktext_' . $index, $feedbackdefaults['feedbacktext_' . $index] ?? '');
+
+            $mform->addElement(
+                'select',
+                'feedbacktemplateformat_' . $index,
+                get_string('field:feedbacktemplateformat', 'block_catquiz_feedbackwizard', $index),
+                [
+                    'mustache' => get_string('templateformat:mustache', 'block_catquiz_feedbackwizard'),
+                    'plain' => get_string('templateformat:plain', 'block_catquiz_feedbackwizard'),
+                ]
+            );
+            $mform->setType('feedbacktemplateformat_' . $index, PARAM_ALPHA);
+            $mform->setDefault(
+                'feedbacktemplateformat_' . $index,
+                $feedbackdefaults['feedbacktemplateformat_' . $index] ?? 'mustache'
+            );
+
+            $mform->addElement(
+                'advcheckbox',
+                'feedbackactioncourseenabled_' . $index,
+                get_string('field:feedbackactioncourseenabled', 'block_catquiz_feedbackwizard', $index)
+            );
+            $mform->setType('feedbackactioncourseenabled_' . $index, PARAM_INT);
+            $mform->setDefault(
+                'feedbackactioncourseenabled_' . $index,
+                $feedbackdefaults['feedbackactioncourseenabled_' . $index] ?? 0
+            );
+
+            $mform->addElement(
+                'text',
+                'feedbackactioncoursetarget_' . $index,
+                get_string('field:feedbackactioncoursetarget', 'block_catquiz_feedbackwizard', $index)
+            );
+            $mform->setType('feedbackactioncoursetarget_' . $index, PARAM_TEXT);
+            $mform->setDefault(
+                'feedbackactioncoursetarget_' . $index,
+                $feedbackdefaults['feedbackactioncoursetarget_' . $index] ?? ''
+            );
+            $mform->disabledIf(
+                'feedbackactioncoursetarget_' . $index,
+                'feedbackactioncourseenabled_' . $index,
+                'notchecked'
+            );
+
+            $mform->addElement(
+                'advcheckbox',
+                'feedbackactiongroupenabled_' . $index,
+                get_string('field:feedbackactiongroupenabled', 'block_catquiz_feedbackwizard', $index)
+            );
+            $mform->setType('feedbackactiongroupenabled_' . $index, PARAM_INT);
+            $mform->setDefault(
+                'feedbackactiongroupenabled_' . $index,
+                $feedbackdefaults['feedbackactiongroupenabled_' . $index] ?? 0
+            );
+
+            $mform->addElement(
+                'text',
+                'feedbackactiongrouptarget_' . $index,
+                get_string('field:feedbackactiongrouptarget', 'block_catquiz_feedbackwizard', $index)
+            );
+            $mform->setType('feedbackactiongrouptarget_' . $index, PARAM_TEXT);
+            $mform->setDefault(
+                'feedbackactiongrouptarget_' . $index,
+                $feedbackdefaults['feedbackactiongrouptarget_' . $index] ?? ''
+            );
+            $mform->disabledIf(
+                'feedbackactiongrouptarget_' . $index,
+                'feedbackactiongroupenabled_' . $index,
+                'notchecked'
+            );
         }
     }
 
@@ -743,6 +812,10 @@ class wizard extends dynamic_form {
                 s((string)($feedbackfields['feedbacklabel_' . $index] ?? '')) . ' [' .
                 s((string)($feedbackfields['feedbacklower_' . $index] ?? '')) . ' - ' .
                 s((string)($feedbackfields['feedbackupper_' . $index] ?? '')) . ']';
+            $summary[] = get_string('field:feedbacktemplateformat', 'block_catquiz_feedbackwizard', $index) . ': ' .
+                s($this->get_template_format_label((string)($feedbackfields['feedbacktemplateformat_' . $index] ?? 'mustache')));
+            $summary[] = get_string('field:feedbackactionsummary', 'block_catquiz_feedbackwizard', $index) . ': ' .
+                s($this->describe_feedback_actions($feedbackfields, $index));
         }
 
         foreach ($this->build_review_warnings($data) as $warning) {
@@ -830,6 +903,44 @@ class wizard extends dynamic_form {
         }
 
         return $warnings;
+    }
+
+
+    /**
+     * Return a display label for one template format.
+     *
+     * @param string $templateformat
+     * @return string
+     */
+    protected function get_template_format_label(string $templateformat): string {
+        $key = 'templateformat:' . $templateformat;
+        $manager = get_string_manager();
+        if ($manager->string_exists($key, 'block_catquiz_feedbackwizard')) {
+            return get_string($key, 'block_catquiz_feedbackwizard');
+        }
+        return $templateformat;
+    }
+
+    /**
+     * Return a summary label for configured range actions.
+     *
+     * @param array $feedbackfields
+     * @param int $index
+     * @return string
+     */
+    protected function describe_feedback_actions(array $feedbackfields, int $index): string {
+        $actions = [get_string('action:text', 'block_catquiz_feedbackwizard')];
+        if (!empty($feedbackfields['feedbackactioncourseenabled_' . $index])) {
+            $target = trim((string)($feedbackfields['feedbackactioncoursetarget_' . $index] ?? ''));
+            $actions[] = get_string('action:course', 'block_catquiz_feedbackwizard') .
+                ($target !== '' ? ' (' . $target . ')' : '');
+        }
+        if (!empty($feedbackfields['feedbackactiongroupenabled_' . $index])) {
+            $target = trim((string)($feedbackfields['feedbackactiongrouptarget_' . $index] ?? ''));
+            $actions[] = get_string('action:group', 'block_catquiz_feedbackwizard') .
+                ($target !== '' ? ' (' . $target . ')' : '');
+        }
+        return implode(', ', $actions);
     }
 
     /**

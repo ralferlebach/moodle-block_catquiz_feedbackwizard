@@ -22,12 +22,17 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['action:course'] = 'Course enrolment';
+$string['action:group'] = 'Group enrolment';
+$string['action:text'] = 'Text feedback';
 $string['capability:use'] = 'Use multistage CAT wizard';
 $string['catquiz_feedbackwizard:addinstance'] = 'Add a new CATQuiz wizard block';
 $string['catquiz_feedbackwizard:use'] = 'Use the CATQuiz wizard';
 $string['clonescope:conditions'] = 'Reuse only conditions and limits';
 $string['clonescope:full'] = 'Reuse the full configuration';
 $string['clonescope:structure'] = 'Reuse only scales and subscales';
+$string['error:feedbackactioncoursetargetrequired'] = 'Enter at least one target course identifier for this range.';
+$string['error:feedbackactiongrouptargetrequired'] = 'Enter at least one target group identifier for this range.';
 $string['error:feedbackinvalidrange'] = 'Each range must end above its lower boundary.';
 $string['error:feedbackrangegap'] = 'Neighbouring feedback ranges must meet without gaps.';
 $string['error:invalidstep'] = 'Invalid wizard step.';
@@ -37,10 +42,16 @@ $string['error:reportingsubscalesrequired'] = 'Choose at least one subscale for 
 $string['error:sameclonesource'] = 'The source test must be different from the selected target test.';
 $string['field:clonescope'] = 'Copy scope';
 $string['field:completionenabled'] = 'Enable activity completion';
+$string['field:feedbackactioncourseenabled'] = 'Range {$a} course enrolment action';
+$string['field:feedbackactioncoursetarget'] = 'Range {$a} course target identifiers';
+$string['field:feedbackactiongroupenabled'] = 'Range {$a} group enrolment action';
+$string['field:feedbackactiongrouptarget'] = 'Range {$a} group target identifiers';
+$string['field:feedbackactionsummary'] = 'Range {$a} actions';
 $string['field:feedbacklabel'] = 'Range {$a} label';
 $string['field:feedbacklower'] = 'Range {$a} lower boundary';
 $string['field:feedbackrangecount'] = 'Number of fixed ranges';
 $string['field:feedbackrangeheader'] = 'Range {$a}';
+$string['field:feedbacktemplateformat'] = 'Range {$a} text template format';
 $string['field:feedbacktext'] = 'Range {$a} feedback text';
 $string['field:feedbackupper'] = 'Range {$a} upper boundary';
 $string['field:mainscaleid'] = 'Main scale';
@@ -116,6 +127,8 @@ $string['submissionsuccess'] = 'The CAT test configuration has been updated succ
 $string['submitfinal'] = 'Finish';
 $string['submitnext'] = 'Continue';
 $string['submitprevious'] = 'Back';
+$string['templateformat:mustache'] = 'Mustache template';
+$string['templateformat:plain'] = 'Plain text';
 $string['warning:feedbackrangesneedreview'] = 'The feedback range boundaries should be checked before saving.';
 $string['warning:feedbacktextmissing'] = 'At least one feedback text is still empty.';
 $string['warning:highprecisionlowquestions'] = 'High precision usually needs a higher maximum question count.';
