@@ -24,7 +24,6 @@
 
 namespace block_catquiz_feedbackwizard;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Data access helper methods for the CATQuiz wizard.
@@ -136,7 +135,7 @@ class catquiz_data {
             return $records;
         }
 
-        return array_values(array_filter($records, static function($record) use ($excludetestid) {
+        return array_values(array_filter($records, static function ($record) use ($excludetestid) {
             return (int)$record->id !== $excludetestid;
         }));
     }
@@ -163,24 +162,97 @@ class catquiz_data {
     }
 
     /**
-     * Return subscale options for a main scale.
+     * Return subscale option labels for a main scale.
      *
      * @param int $mainscaleid
      * @return array
      */
     public static function get_subscale_options(int $mainscaleid): array {
+        $records = self::get_subscale_records($mainscaleid);
+        $options = [];
+        foreach ($records as $record) {
+            $options[(int)$record->id] = self::format_subscale_label($record);
+        }
+        return $options;
+    }
+
+    /**
+     * Return subscale records with item counts for a main scale.
+     *
+     * @param int $mainscaleid
+     * @return array
+     */
+    public static function get_subscale_records(int $mainscaleid): array {
         global $DB;
 
         if ($mainscaleid < 1) {
             return [];
         }
 
-        $records = $DB->get_records('local_catquiz_catscales', ['parentid' => $mainscaleid], 'name ASC, id ASC', 'id, name');
-        $options = [];
-        foreach ($records as $record) {
-            $options[(int)$record->id] = format_string($record->name);
+        $allrecords = $DB->get_records('local_catquiz_catscales', null, 'parentid ASC, name ASC, id ASC',
+            'id, parentid, name');
+        if (empty($allrecords)) {
+            return [];
         }
-        return $options;
+
+        $childrenbyparent = [];
+        foreach ($allrecords as $record) {
+            $childrenbyparent[(int)$record->parentid][] = $record;
+        }
+
+        $itemcounts = [];
+        $countrecords = $DB->get_records_sql(
+            'SELECT catscaleid, COUNT(*) AS itemcount
+               FROM {local_catquiz_items}
+           GROUP BY catscaleid'
+        );
+        foreach ($countrecords as $countrecord) {
+            $itemcounts[(int)$countrecord->catscaleid] = (int)$countrecord->itemcount;
+        }
+
+        $results = [];
+        self::append_subscale_records($mainscaleid, $childrenbyparent, $itemcounts, 1, $results);
+        return $results;
+    }
+
+    /**
+     * Append recursive subscale records.
+     *
+     * @param int $parentid
+     * @param array $childrenbyparent
+     * @param array $itemcounts
+     * @param int $depth
+     * @param array $results
+     * @return void
+     */
+    protected static function append_subscale_records(
+        int $parentid,
+        array $childrenbyparent,
+        array $itemcounts,
+        int $depth,
+        array &$results
+    ): void {
+        if (empty($childrenbyparent[$parentid])) {
+            return;
+        }
+
+        foreach ($childrenbyparent[$parentid] as $record) {
+            $record->depth = $depth;
+            $record->itemcount = $itemcounts[(int)$record->id] ?? 0;
+            $results[] = $record;
+            self::append_subscale_records((int)$record->id, $childrenbyparent, $itemcounts, $depth + 1, $results);
+        }
+    }
+
+    /**
+     * Format a subscale label for display.
+     *
+     * @param \stdClass $record
+     * @return string
+     */
+    protected static function format_subscale_label(\stdClass $record): string {
+        $prefix = str_repeat('- ', max(0, ((int)($record->depth ?? 1)) - 1));
+        return $prefix . format_string($record->name) . ' (' . (int)($record->itemcount ?? 0) . ')';
     }
 
     /**

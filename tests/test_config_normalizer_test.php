@@ -28,7 +28,6 @@ namespace block_catquiz_feedbackwizard;
 
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
 
-
 /**
  * PHPUnit tests for the CATQuiz wizard normalizer.
  *
@@ -61,15 +60,25 @@ final class test_config_normalizer_test extends \advanced_testcase {
      * @return void
      */
     public function test_build_wizard_defaults(): void {
-        $record = (object)[
+        $record = (object) [
             'id' => 99,
             'catscaleid' => 7,
             'json' => json_encode([
                 'catquiz_catscales' => 8,
                 'catquiz_subscalecheckbox_21' => 1,
                 'catquiz_subscalecheckbox_22' => 1,
-                'catquiz_maxquestions' => 17,
-                'catquiz_maxtimeperattempt' => 1800,
+                'maxquestionsgroup' => [
+                    'catquiz_minquestions' => 5,
+                    'catquiz_maxquestions' => 17,
+                ],
+                'maxquestionsscalegroup' => [
+                    'catquiz_maxquestionspersubscale' => 4,
+                ],
+                'catquiz_includetimelimit' => 1,
+                'catquiz_timelimitgroup' => [
+                    'catquiz_timeselect_attempt' => 'min',
+                    'catquiz_maxtimeperattempt' => 30,
+                ],
                 'catquiz_standarderrorgroup' => [
                     'catquiz_standarderror_min' => 0.2,
                 ],
@@ -81,8 +90,33 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame(99, $defaults['selectedtest']);
         $this->assertSame(8, $defaults['mainscaleid']);
         $this->assertSame([21, 22], $defaults['subscaleids']);
+        $this->assertSame(5, $defaults['minquestioncount']);
         $this->assertSame(17, $defaults['questioncount']);
+        $this->assertSame(4, $defaults['questioncountpersubscale']);
+        $this->assertSame(1, $defaults['timelimitenabled']);
         $this->assertSame(30, $defaults['timelimitminutes']);
         $this->assertSame('high', $defaults['precisionmode']);
+        $this->assertSame('', $defaults['testgoal']);
+        $this->assertSame(0, $defaults['completionenabled']);
+    }
+
+    /**
+     * Test extracting wizard-owned goal and completion defaults.
+     *
+     * @covers ::extract_completion_enabled
+     * @covers ::extract_test_goal
+     * @return void
+     */
+    public function test_extract_wizard_goal_and_completion_defaults(): void {
+        $jsondata = [
+            'completion' => 0,
+        ];
+        $wizarddata = [
+            'testgoal' => 'placement',
+            'completionenabled' => 1,
+        ];
+
+        $this->assertSame('placement', test_config_normalizer::extract_test_goal($wizarddata));
+        $this->assertSame(1, test_config_normalizer::extract_completion_enabled($jsondata, $wizarddata));
     }
 }

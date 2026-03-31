@@ -24,7 +24,6 @@
 
 namespace block_catquiz_feedbackwizard\local\service;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Normalises local_catquiz test JSON into wizard defaults.
@@ -46,7 +45,6 @@ class test_config_normalizer {
         $jsondata = self::decode_json((string)($testrecord->json ?? ''));
         $wizarddata = self::extract_existing_wizard_state($jsondata);
         $mainscaleid = self::extract_mainscaleid($testrecord, $jsondata, $wizarddata);
-        $subscaleids = self::extract_subscale_ids($jsondata, $wizarddata);
 
         return [
             'selectedtest' => (int)$testrecord->id,
@@ -55,10 +53,15 @@ class test_config_normalizer {
             'sourcetestid' => $sourcetestid,
             'scenario' => (string)($wizarddata['scenario'] ?? ''),
             'mainscaleid' => $mainscaleid,
-            'subscaleids' => $subscaleids,
+            'subscaleids' => self::extract_subscale_ids($jsondata, $wizarddata),
+            'minquestioncount' => self::extract_min_question_count($jsondata, $wizarddata),
             'questioncount' => self::extract_question_count($jsondata, $wizarddata),
+            'questioncountpersubscale' => self::extract_question_count_per_subscale($jsondata, $wizarddata),
+            'timelimitenabled' => self::extract_time_limit_enabled($jsondata, $wizarddata),
             'timelimitminutes' => self::extract_time_limit_minutes($jsondata, $wizarddata),
             'precisionmode' => self::extract_precision_mode($jsondata, $wizarddata),
+            'testgoal' => self::extract_test_goal($wizarddata),
+            'completionenabled' => self::extract_completion_enabled($jsondata, $wizarddata),
         ];
     }
 
@@ -125,10 +128,7 @@ class test_config_normalizer {
 
         $subscaleids = [];
         foreach ($jsondata as $key => $value) {
-            if (strpos($key, 'catquiz_subscalecheckbox_') !== 0) {
-                continue;
-            }
-            if (empty($value)) {
+            if (strpos($key, 'catquiz_subscalecheckbox_') !== 0 || empty($value)) {
                 continue;
             }
             $subscaleid = (int)substr($key, strlen('catquiz_subscalecheckbox_'));
@@ -143,7 +143,21 @@ class test_config_normalizer {
     }
 
     /**
-     * Extract question count.
+     * Extract minimum question count.
+     *
+     * @param array $jsondata
+     * @param array $wizarddata
+     * @return int
+     */
+    public static function extract_min_question_count(array $jsondata, array $wizarddata = []): int {
+        if (isset($wizarddata['minquestioncount'])) {
+            return (int)$wizarddata['minquestioncount'];
+        }
+        return (int)($jsondata['maxquestionsgroup']['catquiz_minquestions'] ?? 0);
+    }
+
+    /**
+     * Extract maximum question count.
      *
      * @param array $jsondata
      * @param array $wizarddata
@@ -153,10 +167,41 @@ class test_config_normalizer {
         if (!empty($wizarddata['questioncount'])) {
             return (int)$wizarddata['questioncount'];
         }
+        if (!empty($jsondata['maxquestionsgroup']['catquiz_maxquestions'])) {
+            return (int)$jsondata['maxquestionsgroup']['catquiz_maxquestions'];
+        }
         if (!empty($jsondata['catquiz_maxquestions'])) {
             return (int)$jsondata['catquiz_maxquestions'];
         }
         return 0;
+    }
+
+    /**
+     * Extract maximum question count per subscale.
+     *
+     * @param array $jsondata
+     * @param array $wizarddata
+     * @return int
+     */
+    public static function extract_question_count_per_subscale(array $jsondata, array $wizarddata = []): int {
+        if (isset($wizarddata['questioncountpersubscale'])) {
+            return (int)$wizarddata['questioncountpersubscale'];
+        }
+        return (int)($jsondata['maxquestionsscalegroup']['catquiz_maxquestionspersubscale'] ?? 0);
+    }
+
+    /**
+     * Extract whether the test currently uses a time limit.
+     *
+     * @param array $jsondata
+     * @param array $wizarddata
+     * @return int
+     */
+    public static function extract_time_limit_enabled(array $jsondata, array $wizarddata = []): int {
+        if (isset($wizarddata['timelimitenabled'])) {
+            return !empty($wizarddata['timelimitenabled']) ? 1 : 0;
+        }
+        return !empty($jsondata['catquiz_includetimelimit']) ? 1 : 0;
     }
 
     /**
@@ -170,10 +215,22 @@ class test_config_normalizer {
         if (!empty($wizarddata['timelimitminutes'])) {
             return (int)$wizarddata['timelimitminutes'];
         }
-        if (!empty($jsondata['catquiz_maxtimeperattempt'])) {
-            return (int)floor(((int)$jsondata['catquiz_maxtimeperattempt']) / 60);
+
+        $group = $jsondata['catquiz_timelimitgroup'] ?? [];
+        $time = (int)($group['catquiz_maxtimeperattempt'] ?? $jsondata['catquiz_maxtimeperattempt'] ?? 0);
+        $unit = (string)($group['catquiz_timeselect_attempt'] ?? 'min');
+        if ($time < 1) {
+            return 0;
         }
-        return 0;
+
+        switch ($unit) {
+            case 'h':
+                return $time * 60;
+            case 'sec':
+                return (int)floor($time / 60);
+            default:
+                return $time;
+        }
     }
 
     /**
@@ -183,6 +240,31 @@ class test_config_normalizer {
      * @param array $wizarddata
      * @return string
      */
+
+    /**
+     * Extract the configured test goal from wizard state.
+     *
+     * @param array $wizarddata
+     * @return string
+     */
+    public static function extract_test_goal(array $wizarddata = []): string {
+        return (string)($wizarddata['testgoal'] ?? '');
+    }
+
+    /**
+     * Extract whether activity completion should be enabled.
+     *
+     * @param array $jsondata
+     * @param array $wizarddata
+     * @return int
+     */
+    public static function extract_completion_enabled(array $jsondata, array $wizarddata = []): int {
+        if (isset($wizarddata['completionenabled'])) {
+            return !empty($wizarddata['completionenabled']) ? 1 : 0;
+        }
+        return !empty($jsondata['completion']) ? 1 : 0;
+    }
+
     public static function extract_precision_mode(array $jsondata, array $wizarddata = []): string {
         if (!empty($wizarddata['precisionmode'])) {
             return (string)$wizarddata['precisionmode'];

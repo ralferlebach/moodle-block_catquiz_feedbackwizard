@@ -26,12 +26,13 @@ namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
+use block_catquiz_feedbackwizard\local\service\test_config_writer;
 use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
 use context_course;
 use core_form\dynamic_form;
+use html_writer;
 use moodle_url;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Multi-step wizard form for CATQuiz setup.
@@ -91,15 +92,18 @@ class wizard extends dynamic_form {
         $testid = $this->optional_param('testid', 0, PARAM_INT);
         $wizardmode = $this->optional_param('wizardmode', '', PARAM_ALPHA);
         $sourcetestid = $this->optional_param('sourcetestid', 0, PARAM_INT);
+        $recordid = $wizardmode === 'clone' ? $sourcetestid : $testid;
 
-        if ($testid > 0 && in_array($wizardmode, ['edit', 'clone'], true)) {
-            $record = catquiz_data::get_test_by_id($wizardmode === 'clone' ? $sourcetestid : $testid);
+        if ($recordid > 0 && in_array($wizardmode, ['edit', 'clone'], true)) {
+            $record = catquiz_data::get_test_by_id($recordid);
             if ($record) {
-                $defaults = test_config_normalizer::build_wizard_defaults(
-                    $record,
-                    $wizardmode,
-                    $wizardmode === 'clone' ? (int)$record->id : $sourcetestid
-                );
+                $sourceid = $wizardmode === 'clone' ? $recordid : 0;
+                $defaults = test_config_normalizer::build_wizard_defaults($record, $wizardmode, $sourceid);
+                if ($wizardmode === 'clone') {
+                    $defaults['selectedtest'] = $testid;
+                    $defaults['testid'] = $testid;
+                    $defaults['sourcetestid'] = $recordid;
+                }
                 $this->set_data((object)$defaults);
             }
         }
@@ -170,7 +174,12 @@ class wizard extends dynamic_form {
             $mform->addRule('selectedtest', get_string('required'), 'required', null, 'client');
         } else {
             $mform->freeze('selectedtest');
-            $mform->addElement('static', 'notestsavailable', '', get_string('message:notestsavailable', 'block_catquiz_feedbackwizard'));
+            $mform->addElement(
+                'static',
+                'notestsavailable',
+                '',
+                get_string('message:notestsavailable', 'block_catquiz_feedbackwizard')
+            );
         }
     }
 
@@ -185,11 +194,16 @@ class wizard extends dynamic_form {
         $mform->addElement('header', 'step2header', get_string('step02:title', 'block_catquiz_feedbackwizard'));
         $mform->addElement('static', 'step2description', '', get_string('step02:description', 'block_catquiz_feedbackwizard'));
 
-        $mform->addElement('select', 'wizardmode', get_string('field:wizardmode', 'block_catquiz_feedbackwizard'), [
-            'edit' => get_string('mode:edit', 'block_catquiz_feedbackwizard'),
-            'clone' => get_string('mode:clone', 'block_catquiz_feedbackwizard'),
-            'scenario' => get_string('mode:scenario', 'block_catquiz_feedbackwizard'),
-        ]);
+        $mform->addElement(
+            'select',
+            'wizardmode',
+            get_string('field:wizardmode', 'block_catquiz_feedbackwizard'),
+            [
+                'edit' => get_string('mode:edit', 'block_catquiz_feedbackwizard'),
+                'clone' => get_string('mode:clone', 'block_catquiz_feedbackwizard'),
+                'scenario' => get_string('mode:scenario', 'block_catquiz_feedbackwizard'),
+            ]
+        );
         $mform->setType('wizardmode', PARAM_ALPHA);
 
         $selectedtest = $this->optional_param('selectedtest', 0, PARAM_INT);
@@ -208,15 +222,20 @@ class wizard extends dynamic_form {
         $mform->setType('sourcetestid', PARAM_INT);
         $mform->disabledIf('sourcetestid', 'wizardmode', 'neq', 'clone');
 
-        $mform->addElement('select', 'scenario', get_string('field:scenario', 'block_catquiz_feedbackwizard'), [
-            '' => get_string('choosedots'),
-            'learning_diagnostics' => get_string('scenario:learning_diagnostics', 'block_catquiz_feedbackwizard'),
-            'placement' => get_string('scenario:placement', 'block_catquiz_feedbackwizard'),
-            'checkup' => get_string('scenario:checkup', 'block_catquiz_feedbackwizard'),
-            'final' => get_string('scenario:final', 'block_catquiz_feedbackwizard'),
-            'strength' => get_string('scenario:strength', 'block_catquiz_feedbackwizard'),
-            'other' => get_string('scenario:other', 'block_catquiz_feedbackwizard'),
-        ]);
+        $mform->addElement(
+            'select',
+            'scenario',
+            get_string('field:scenario', 'block_catquiz_feedbackwizard'),
+            [
+                '' => get_string('choosedots'),
+                'learning_diagnostics' => get_string('scenario:learning_diagnostics', 'block_catquiz_feedbackwizard'),
+                'placement' => get_string('scenario:placement', 'block_catquiz_feedbackwizard'),
+                'checkup' => get_string('scenario:checkup', 'block_catquiz_feedbackwizard'),
+                'final' => get_string('scenario:final', 'block_catquiz_feedbackwizard'),
+                'strength' => get_string('scenario:strength', 'block_catquiz_feedbackwizard'),
+                'other' => get_string('scenario:other', 'block_catquiz_feedbackwizard'),
+            ]
+        );
         $mform->setType('scenario', PARAM_ALPHANUMEXT);
         $mform->disabledIf('scenario', 'wizardmode', 'neq', 'scenario');
     }
@@ -232,7 +251,12 @@ class wizard extends dynamic_form {
         $mform->addElement('static', 'step3description', '', get_string('step03:description', 'block_catquiz_feedbackwizard'));
 
         $scaleoptions = [0 => get_string('choosedots')] + catquiz_data::get_main_scale_options();
-        $mform->addElement('select', 'mainscaleid', get_string('field:mainscaleid', 'block_catquiz_feedbackwizard'), $scaleoptions);
+        $mform->addElement(
+            'select',
+            'mainscaleid',
+            get_string('field:mainscaleid', 'block_catquiz_feedbackwizard'),
+            $scaleoptions
+        );
         $mform->setType('mainscaleid', PARAM_INT);
 
         $mainscaleid = $this->optional_param('mainscaleid', 0, PARAM_INT);
@@ -243,27 +267,89 @@ class wizard extends dynamic_form {
                 'subscaleids',
                 get_string('field:subscaleids', 'block_catquiz_feedbackwizard'),
                 $subscaleoptions,
-                ['multiple' => 'multiple', 'size' => min(count($subscaleoptions), 8)]
+                ['multiple' => 'multiple', 'size' => min(count($subscaleoptions), 10)]
             );
             $mform->setType('subscaleids', PARAM_INT);
             $select->setMultiple(true);
         } else {
-            $mform->addElement('static', 'subscaleidsinfo', get_string('field:subscaleids', 'block_catquiz_feedbackwizard'),
-                get_string('message:nosubscalesavailable', 'block_catquiz_feedbackwizard'));
+            $mform->addElement(
+                'static',
+                'subscaleidsinfo',
+                get_string('field:subscaleids', 'block_catquiz_feedbackwizard'),
+                get_string('message:nosubscalesavailable', 'block_catquiz_feedbackwizard')
+            );
         }
 
-        $mform->addElement('text', 'questioncount', get_string('field:questioncount', 'block_catquiz_feedbackwizard'));
+        $mform->addElement(
+            'text',
+            'minquestioncount',
+            get_string('field:minquestioncount', 'block_catquiz_feedbackwizard')
+        );
+        $mform->setType('minquestioncount', PARAM_INT);
+
+        $mform->addElement(
+            'text',
+            'questioncount',
+            get_string('field:questioncount', 'block_catquiz_feedbackwizard')
+        );
         $mform->setType('questioncount', PARAM_INT);
 
-        $mform->addElement('text', 'timelimitminutes', get_string('field:timelimitminutes', 'block_catquiz_feedbackwizard'));
-        $mform->setType('timelimitminutes', PARAM_INT);
+        $mform->addElement(
+            'text',
+            'questioncountpersubscale',
+            get_string('field:questioncountpersubscale', 'block_catquiz_feedbackwizard')
+        );
+        $mform->setType('questioncountpersubscale', PARAM_INT);
 
-        $mform->addElement('select', 'precisionmode', get_string('field:precisionmode', 'block_catquiz_feedbackwizard'), [
-            'low' => get_string('precision:low', 'block_catquiz_feedbackwizard'),
-            'medium' => get_string('precision:medium', 'block_catquiz_feedbackwizard'),
-            'high' => get_string('precision:high', 'block_catquiz_feedbackwizard'),
-        ]);
+        $mform->addElement(
+            'advcheckbox',
+            'timelimitenabled',
+            get_string('field:timelimitenabled', 'block_catquiz_feedbackwizard')
+        );
+        $mform->setType('timelimitenabled', PARAM_INT);
+
+        $mform->addElement(
+            'text',
+            'timelimitminutes',
+            get_string('field:timelimitminutes', 'block_catquiz_feedbackwizard')
+        );
+        $mform->setType('timelimitminutes', PARAM_INT);
+        $mform->disabledIf('timelimitminutes', 'timelimitenabled', 'notchecked');
+
+        $mform->addElement(
+            'select',
+            'precisionmode',
+            get_string('field:precisionmode', 'block_catquiz_feedbackwizard'),
+            [
+                'low' => get_string('precision:low', 'block_catquiz_feedbackwizard'),
+                'medium' => get_string('precision:medium', 'block_catquiz_feedbackwizard'),
+                'high' => get_string('precision:high', 'block_catquiz_feedbackwizard'),
+            ]
+        );
         $mform->setType('precisionmode', PARAM_ALPHA);
+
+        $mform->addElement(
+            'select',
+            'testgoal',
+            get_string('field:testgoal', 'block_catquiz_feedbackwizard'),
+            [
+                '' => get_string('choosedots'),
+                'orientation' => get_string('goal:orientation', 'block_catquiz_feedbackwizard'),
+                'placement' => get_string('goal:placement', 'block_catquiz_feedbackwizard'),
+                'diagnostics' => get_string('goal:diagnostics', 'block_catquiz_feedbackwizard'),
+                'final' => get_string('goal:final', 'block_catquiz_feedbackwizard'),
+                'strength' => get_string('goal:strength', 'block_catquiz_feedbackwizard'),
+                'other' => get_string('goal:other', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('testgoal', PARAM_ALPHANUMEXT);
+
+        $mform->addElement(
+            'advcheckbox',
+            'completionenabled',
+            get_string('field:completionenabled', 'block_catquiz_feedbackwizard')
+        );
+        $mform->setType('completionenabled', PARAM_INT);
     }
 
     /**
@@ -275,8 +361,12 @@ class wizard extends dynamic_form {
     protected function add_review_step(\MoodleQuickForm $mform): void {
         $mform->addElement('header', 'step4header', get_string('step04:title', 'block_catquiz_feedbackwizard'));
         $mform->addElement('static', 'step4description', '', get_string('step04:description', 'block_catquiz_feedbackwizard'));
-        $mform->addElement('static', 'reviewsummary', get_string('field:reviewsummary', 'block_catquiz_feedbackwizard'),
-            get_string('message:reviewsummary', 'block_catquiz_feedbackwizard'));
+        $mform->addElement(
+            'static',
+            'reviewsummary',
+            get_string('field:reviewsummary', 'block_catquiz_feedbackwizard'),
+            $this->build_review_summary()
+        );
     }
 
     /**
@@ -307,11 +397,24 @@ class wizard extends dynamic_form {
             if (empty($data['mainscaleid'])) {
                 $errors['mainscaleid'] = get_string('required');
             }
+            if (!empty($data['minquestioncount']) && (int)$data['minquestioncount'] < 0) {
+                $errors['minquestioncount'] = get_string('err_numeric', 'form');
+            }
             if (!empty($data['questioncount']) && (int)$data['questioncount'] < 1) {
                 $errors['questioncount'] = get_string('err_positive', 'form');
             }
+            if (!empty($data['questioncountpersubscale']) && (int)$data['questioncountpersubscale'] < 0) {
+                $errors['questioncountpersubscale'] = get_string('err_numeric', 'form');
+            }
+            if (!empty($data['timelimitenabled']) && empty($data['timelimitminutes'])) {
+                $errors['timelimitminutes'] = get_string('required');
+            }
             if (!empty($data['timelimitminutes']) && (int)$data['timelimitminutes'] < 1) {
                 $errors['timelimitminutes'] = get_string('err_positive', 'form');
+            }
+            if (!empty($data['minquestioncount']) && !empty($data['questioncount']) &&
+                (int)$data['minquestioncount'] > (int)$data['questioncount']) {
+                $errors['questioncount'] = get_string('error:minlargerthanmax', 'block_catquiz_feedbackwizard');
             }
         }
 
@@ -365,7 +468,8 @@ class wizard extends dynamic_form {
             if ($recordid > 0 && in_array($wizardmode, ['edit', 'clone'], true)) {
                 $record = catquiz_data::get_test_by_id($recordid);
                 if ($record) {
-                    $defaults = test_config_normalizer::build_wizard_defaults($record, $wizardmode, $recordid);
+                    $sourceid = $wizardmode === 'clone' ? $recordid : 0;
+                    $defaults = test_config_normalizer::build_wizard_defaults($record, $wizardmode, $sourceid);
                     $merged = array_merge($defaults, $merged);
                     $merged['selectedtest'] = $selectedtest;
                     $merged['testid'] = $selectedtest;
@@ -400,6 +504,7 @@ class wizard extends dynamic_form {
             ];
         }
 
+        test_config_writer::write_to_test($selectedtest, $merged);
         $draft->set('status', 'submitted');
         $draft->set('timemodified', time());
         $draft->save();
@@ -409,6 +514,43 @@ class wizard extends dynamic_form {
             'message' => get_string('submissionsuccess', 'block_catquiz_feedbackwizard'),
             'recordid' => $draft->get('id'),
         ];
+    }
+
+    /**
+     * Build a compact review summary from current draft data.
+     *
+     * @return string
+     */
+    protected function build_review_summary(): string {
+        $draftid = $this->optional_param('draftid', 0, PARAM_INT);
+        if ($draftid < 1) {
+            return get_string('message:reviewsummary', 'block_catquiz_feedbackwizard');
+        }
+
+        $draft = new draft_persistent($draftid);
+        $data = json_decode((string)$draft->get('datajson'), true);
+        if (!is_array($data)) {
+            return get_string('message:reviewsummary', 'block_catquiz_feedbackwizard');
+        }
+
+        $summary = [];
+        $summary[] = get_string('field:selectedtest', 'block_catquiz_feedbackwizard') . ': #' . (int)($data['selectedtest'] ?? 0);
+        $summary[] = get_string('field:wizardmode', 'block_catquiz_feedbackwizard') . ': ' .
+            s((string)($data['wizardmode'] ?? 'edit'));
+        $summary[] = get_string('field:mainscaleid', 'block_catquiz_feedbackwizard') . ': ' . (int)($data['mainscaleid'] ?? 0);
+        $summary[] = get_string('field:subscaleids', 'block_catquiz_feedbackwizard') . ': ' .
+            count((array)($data['subscaleids'] ?? []));
+        $summary[] = get_string('field:questioncount', 'block_catquiz_feedbackwizard') . ': ' . (int)($data['questioncount'] ?? 0);
+        $summary[] = get_string('field:timelimitminutes', 'block_catquiz_feedbackwizard') . ': ' .
+            (int)($data['timelimitminutes'] ?? 0);
+        $summary[] = get_string('field:precisionmode', 'block_catquiz_feedbackwizard') . ': ' .
+            s((string)($data['precisionmode'] ?? 'medium'));
+        $summary[] = get_string('field:testgoal', 'block_catquiz_feedbackwizard') . ': ' .
+            s((string)($data['testgoal'] ?? ''));
+        $summary[] = get_string('field:completionenabled', 'block_catquiz_feedbackwizard') . ': ' .
+            (!empty($data['completionenabled']) ? get_string('yes') : get_string('no'));
+
+        return html_writer::alist($summary);
     }
 
     /**

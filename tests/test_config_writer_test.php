@@ -14,62 +14,74 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
+/**
+ * PHPUnit tests for the CATQuiz wizard writer.
+ *
+ * @package     block_catquiz_feedbackwizard
+ * @category    test
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers      \block_catquiz_feedbackwizard\local\service\test_config_writer
+ */
+
 namespace block_catquiz_feedbackwizard;
 
 use block_catquiz_feedbackwizard\local\service\test_config_writer;
 
 /**
- * PHPUnit coverage for the CATQuiz wizard test config writer.
+ * PHPUnit tests for the CATQuiz wizard writer.
  *
- * @package             block_catquiz_feedbackwizard
- * @coversDefaultClass  \block_catquiz_feedbackwizard\local\service\test_config_writer
- * @copyright           2026 OpenAI
- * @license             https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package     block_catquiz_feedbackwizard
+ * @category    test
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-final class test_config_writer_test extends \basic_testcase {
+final class test_config_writer_test extends \advanced_testcase {
     /**
-     * Test parsing a comma-separated list of subscale IDs.
-     *
-     * @covers ::parse_subscale_ids
-     * @return void
-     */
-    public function test_parse_subscale_ids(): void {
-        $actual = test_config_writer::parse_subscale_ids('5, 2, 5, abc, 9');
-
-        $this->assertSame([2, 5, 9], $actual);
-    }
-
-    /**
-     * Test applying wizard state to an existing CAT test JSON payload.
+     * Test mapping wizard state back to local_catquiz JSON.
      *
      * @covers ::apply_wizard_state
      * @return void
      */
     public function test_apply_wizard_state(): void {
-        $baseconfig = [
-            'existingvalue' => 'keep-me',
-            'catquiz_subscalecheckbox_12' => '1',
+        $jsondata = [
+            'catquiz_subscalecheckbox_3' => 1,
+            'something_else' => 'kept',
         ];
 
-        $state = [
-            'mode' => 'edit',
-            'scenario' => 'placement_test',
-            'goal' => 'placement',
-            'mainscaleid' => 7,
-            'subscaleids' => '11,12',
+        $wizardstate = [
+            'wizardmode' => 'edit',
+            'scenario' => 'placement',
+            'mainscaleid' => 9,
+            'subscaleids' => [11, 12],
+            'minquestioncount' => 4,
+            'questioncount' => 20,
+            'questioncountpersubscale' => 5,
+            'timelimitenabled' => 1,
+            'timelimitminutes' => 45,
             'precisionmode' => 'high',
-            'questioncount' => 18,
-            'timelimitminutes' => 35,
+            'testgoal' => 'placement',
+            'completionenabled' => 1,
         ];
 
-        $actual = test_config_writer::apply_wizard_state($baseconfig, $state);
+        $mapped = test_config_writer::apply_wizard_state($jsondata, $wizardstate);
 
-        $this->assertSame('keep-me', $actual['existingvalue']);
-        $this->assertSame('1', $actual['catquiz_subscalecheckbox_11']);
-        $this->assertSame('1', $actual['catquiz_subscalecheckbox_12']);
-        $this->assertSame(18, $actual['maxquestionsgroup']['catquiz_maxquestions']);
-        $this->assertSame(1, $actual['catquiz_includetimelimit']);
-        $this->assertSame(7, $actual[test_config_writer::WIZARDKEY]['mainscaleid']);
-        $this->assertSame('placement_test', $actual[test_config_writer::WIZARDKEY]['scenario']);
+        $this->assertSame('kept', $mapped['something_else']);
+        $this->assertSame(9, $mapped['catscaleid']);
+        $this->assertSame(9, $mapped['catquiz_catscales']);
+        $this->assertArrayNotHasKey('catquiz_subscalecheckbox_3', $mapped);
+        $this->assertSame(1, $mapped['catquiz_subscalecheckbox_11']);
+        $this->assertSame(1, $mapped['catquiz_subscalecheckbox_12']);
+        $this->assertSame(4, $mapped['maxquestionsgroup']['catquiz_minquestions']);
+        $this->assertSame(20, $mapped['maxquestionsgroup']['catquiz_maxquestions']);
+        $this->assertSame(5, $mapped['maxquestionsscalegroup']['catquiz_maxquestionspersubscale']);
+        $this->assertSame(1, $mapped['catquiz_includetimelimit']);
+        $this->assertSame(45, $mapped['catquiz_timelimitgroup']['catquiz_maxtimeperattempt']);
+        $this->assertSame('min', $mapped['catquiz_timelimitgroup']['catquiz_timeselect_attempt']);
+        $this->assertSame(0.2, $mapped['catquiz_standarderrorgroup']['catquiz_standarderror_min']);
+        $this->assertSame(1, $mapped['completion']);
+        $this->assertSame(1, $mapped['completionview']);
+        $this->assertSame('placement', $mapped['catquiz_wizard']['scenario']);
+        $this->assertSame('placement', $mapped['catquiz_wizard']['testgoal']);
     }
 }

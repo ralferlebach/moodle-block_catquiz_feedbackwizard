@@ -26,7 +26,6 @@ namespace block_catquiz_feedbackwizard\persistent;
 
 use core\persistent;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Persistent class for wizard drafts.
