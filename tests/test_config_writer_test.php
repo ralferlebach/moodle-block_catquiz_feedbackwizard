@@ -62,6 +62,10 @@ final class test_config_writer_test extends \advanced_testcase {
             'precisionmode' => 'high',
             'testgoal' => 'placement',
             'completionenabled' => 1,
+            'feedbackmode' => 'csv',
+            'feedbackdisplaymode' => 'text_and_scores',
+            'feedbackvariablepreset' => 'equal',
+            'feedbackcsvranges' => "Below target,-3,0,Please keep practising.,mustache\nOn track,0,3,You are doing well.,plain",
             'feedbackrangecount' => 2,
             'reportingstrategy' => 'main_only',
             'feedbacklabel_1' => 'Below target',
@@ -108,6 +112,8 @@ final class test_config_writer_test extends \advanced_testcase {
         $this->assertSame('Please keep practising.', $mapped['feedbackeditor_scaleid_9_1']['text']);
         $this->assertSame('placement', $mapped['catquiz_wizard']['scenario']);
         $this->assertSame('placement', $mapped['catquiz_wizard']['testgoal']);
+        $this->assertSame('csv', $mapped['catquiz_wizard']['feedbackmode']);
+        $this->assertSame('text_and_scores', $mapped['catquiz_wizard']['feedbackdisplaymode']);
         $this->assertSame('main_only', $mapped['catquiz_wizard']['reportingstrategy']);
         $this->assertCount(2, $mapped['catquiz_wizard']['feedbackranges']);
         $this->assertSame('mustache', $mapped['catquiz_wizard']['feedbackranges'][0]['templateformat']);
@@ -141,6 +147,10 @@ final class test_config_writer_test extends \advanced_testcase {
             'wizardmode' => 'clone',
             'clonescope' => 'conditions',
             'mainscaleid' => 3,
+            'feedbackmode' => 'csv',
+            'feedbackdisplaymode' => 'text_and_scores',
+            'feedbackvariablepreset' => 'equal',
+            'feedbackcsvranges' => "Below target,-3,0,Please keep practising.,mustache\nOn track,0,3,You are doing well.,plain",
             'feedbackrangecount' => 2,
             'reportingstrategy' => 'main_only',
             'feedbacklabel_1' => 'A',

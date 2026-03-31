@@ -25,7 +25,6 @@
 namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
-use block_catquiz_feedbackwizard\local\service\feedback_template_service;
 use block_catquiz_feedbackwizard\local\service\scenario_preset_service;
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
 use block_catquiz_feedbackwizard\local\service\test_config_writer;
@@ -384,12 +383,68 @@ class wizard extends dynamic_form {
 
         $mform->addElement(
             'select',
+            'feedbackmode',
+            get_string('field:feedbackmode', 'block_catquiz_feedbackwizard'),
+            [
+                'fixed' => get_string('feedbackmode:fixed', 'block_catquiz_feedbackwizard'),
+                'variable' => get_string('feedbackmode:variable', 'block_catquiz_feedbackwizard'),
+                'csv' => get_string('feedbackmode:csv', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('feedbackmode', PARAM_ALPHA);
+        $mform->setDefault('feedbackmode', $feedbackdefaults['feedbackmode']);
+
+        $mform->addElement(
+            'select',
             'feedbackrangecount',
             get_string('field:feedbackrangecount', 'block_catquiz_feedbackwizard'),
             [2 => '2', 3 => '3', 4 => '4', 5 => '5']
         );
         $mform->setType('feedbackrangecount', PARAM_INT);
         $mform->setDefault('feedbackrangecount', $feedbackdefaults['feedbackrangecount']);
+
+        $mform->addElement(
+            'select',
+            'feedbackvariablepreset',
+            get_string('field:feedbackvariablepreset', 'block_catquiz_feedbackwizard'),
+            [
+                'equal' => get_string('feedbackvariablepreset:equal', 'block_catquiz_feedbackwizard'),
+                'focus_low' => get_string('feedbackvariablepreset:focus_low', 'block_catquiz_feedbackwizard'),
+                'focus_high' => get_string('feedbackvariablepreset:focus_high', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('feedbackvariablepreset', PARAM_ALPHAEXT);
+        $mform->setDefault('feedbackvariablepreset', $feedbackdefaults['feedbackvariablepreset']);
+        $mform->disabledIf('feedbackvariablepreset', 'feedbackmode', 'neq', 'variable');
+
+        $mform->addElement(
+            'textarea',
+            'feedbackcsvranges',
+            get_string('field:feedbackcsvranges', 'block_catquiz_feedbackwizard'),
+            ['rows' => 6, 'cols' => 80]
+        );
+        $mform->setType('feedbackcsvranges', PARAM_RAW_TRIMMED);
+        $mform->setDefault('feedbackcsvranges', $feedbackdefaults['feedbackcsvranges']);
+        $mform->disabledIf('feedbackcsvranges', 'feedbackmode', 'neq', 'csv');
+        $mform->addElement(
+            'static',
+            'feedbackcsvtemplate',
+            '',
+            get_string('message:feedbackcsvtemplate', 'block_catquiz_feedbackwizard')
+        );
+
+        $mform->addElement(
+            'select',
+            'feedbackdisplaymode',
+            get_string('field:feedbackdisplaymode', 'block_catquiz_feedbackwizard'),
+            [
+                'text_only' => get_string('feedbackdisplaymode:text_only', 'block_catquiz_feedbackwizard'),
+                'text_and_graphic' => get_string('feedbackdisplaymode:text_and_graphic', 'block_catquiz_feedbackwizard'),
+                'text_and_scores' => get_string('feedbackdisplaymode:text_and_scores', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('feedbackdisplaymode', PARAM_ALPHAEXT);
+        $mform->setDefault('feedbackdisplaymode', $feedbackdefaults['feedbackdisplaymode']);
 
         $mform->addElement(
             'select',
@@ -411,7 +466,7 @@ class wizard extends dynamic_form {
             'static',
             'feedbacktokeninfo',
             '',
-            feedback_template_service::get_token_help_html()
+            get_string('message:feedbacktokeninfo', 'block_catquiz_feedbackwizard')
         );
 
         $rangecount = (int)$feedbackdefaults['feedbackrangecount'];
@@ -604,11 +659,23 @@ class wizard extends dynamic_form {
         }
 
         if ($step === 4) {
+            $feedbackmode = test_config_normalizer::normalise_feedback_mode((string)($data['feedbackmode'] ?? 'fixed'));
             $rangecount = test_config_normalizer::normalise_feedback_range_count((int)($data['feedbackrangecount'] ?? 0));
             $reportingstrategy = (string)($data['reportingstrategy'] ?? '');
             $subscaleids = array_filter(array_map('intval', (array)($data['subscaleids'] ?? [])));
             if ($reportingstrategy === '') {
                 $errors['reportingstrategy'] = get_string('required');
+            }
+            if ($feedbackmode === 'variable' && empty($data['feedbackvariablepreset'])) {
+                $errors['feedbackvariablepreset'] = get_string('required');
+            }
+            if ($feedbackmode === 'csv') {
+                $csvranges = trim((string)($data['feedbackcsvranges'] ?? ''));
+                if ($csvranges === '') {
+                    $errors['feedbackcsvranges'] = get_string('error:feedbackcsvrequired', 'block_catquiz_feedbackwizard');
+                } else if (empty(test_config_normalizer::parse_csv_feedback_ranges($csvranges))) {
+                    $errors['feedbackcsvranges'] = get_string('error:feedbackcsvinvalid', 'block_catquiz_feedbackwizard');
+                }
             }
             if (
                 in_array($reportingstrategy, ['subscales_only', 'subscales_with_parents_without_main'], true)
@@ -798,8 +865,24 @@ class wizard extends dynamic_form {
             (!empty($data['completionenabled']) ? get_string('yes') : get_string('no'));
         $summary[] = get_string('field:reportingstrategy', 'block_catquiz_feedbackwizard') . ': ' .
             s($this->get_reporting_strategy_label((string)($data['reportingstrategy'] ?? 'main_only')));
+        $summary[] = get_string('field:feedbackmode', 'block_catquiz_feedbackwizard') . ': ' .
+            s($this->get_feedback_mode_label((string)($data['feedbackmode'] ?? 'fixed')));
+        $summary[] = get_string('field:feedbackdisplaymode', 'block_catquiz_feedbackwizard') . ': ' .
+            s($this->get_feedback_display_mode_label((string)($data['feedbackdisplaymode'] ?? 'text_only')));
         $summary[] = get_string('field:feedbackrangecount', 'block_catquiz_feedbackwizard') . ': ' .
             (int)($data['feedbackrangecount'] ?? 0);
+        if (($data['feedbackmode'] ?? 'fixed') === 'variable') {
+            $summary[] = get_string('field:feedbackvariablepreset', 'block_catquiz_feedbackwizard') . ': ' .
+                s($this->get_feedback_variable_preset_label((string)($data['feedbackvariablepreset'] ?? 'equal')));
+        } else if (($data['feedbackmode'] ?? 'fixed') === 'csv') {
+            $csvlinecount = count(array_filter(preg_split('/\r\n|\r|\n/', trim((string)($data['feedbackcsvranges'] ?? '')))));
+            $summary[] = get_string('field:feedbackcsvranges', 'block_catquiz_feedbackwizard') . ': ' . $csvlinecount;
+        }
+
+        $feedbackmode = test_config_normalizer::normalise_feedback_mode((string)($data['feedbackmode'] ?? 'fixed'));
+        if ($feedbackmode === 'csv' && trim((string)($data['feedbackcsvranges'] ?? '')) === '') {
+            $warnings[] = get_string('warning:feedbackcsvempty', 'block_catquiz_feedbackwizard');
+        }
 
         $range = catquiz_data::get_scale_range((int)($data['mainscaleid'] ?? 0));
         $feedbackfields = test_config_normalizer::build_feedback_defaults_from_wizard_state(
@@ -815,13 +898,6 @@ class wizard extends dynamic_form {
                 s((string)($feedbackfields['feedbackupper_' . $index] ?? '')) . ']';
             $summary[] = get_string('field:feedbacktemplateformat', 'block_catquiz_feedbackwizard', $index) . ': ' .
                 s($this->get_template_format_label((string)($feedbackfields['feedbacktemplateformat_' . $index] ?? 'mustache')));
-            $preview = feedback_template_service::render_preview(
-                (string)($feedbackfields['feedbacktext_' . $index] ?? ''),
-                (string)($feedbackfields['feedbacktemplateformat_' . $index] ?? 'mustache')
-            );
-            if ($preview !== '') {
-                $summary[] = get_string('field:feedbackpreview', 'block_catquiz_feedbackwizard', $index) . ': ' . s($preview);
-            }
             $summary[] = get_string('field:feedbackactionsummary', 'block_catquiz_feedbackwizard', $index) . ': ' .
                 s($this->describe_feedback_actions($feedbackfields, $index));
         }
@@ -949,6 +1025,52 @@ class wizard extends dynamic_form {
                 ($target !== '' ? ' (' . $target . ')' : '');
         }
         return implode(', ', $actions);
+    }
+
+
+    /**
+     * Return a display label for the selected feedback mode.
+     *
+     * @param string $feedbackmode
+     * @return string
+     */
+    protected function get_feedback_mode_label(string $feedbackmode): string {
+        $key = 'feedbackmode:' . $feedbackmode;
+        $manager = get_string_manager();
+        if ($manager->string_exists($key, 'block_catquiz_feedbackwizard')) {
+            return get_string($key, 'block_catquiz_feedbackwizard');
+        }
+        return $feedbackmode;
+    }
+
+    /**
+     * Return a display label for the selected feedback display mode.
+     *
+     * @param string $displaymode
+     * @return string
+     */
+    protected function get_feedback_display_mode_label(string $displaymode): string {
+        $key = 'feedbackdisplaymode:' . $displaymode;
+        $manager = get_string_manager();
+        if ($manager->string_exists($key, 'block_catquiz_feedbackwizard')) {
+            return get_string($key, 'block_catquiz_feedbackwizard');
+        }
+        return $displaymode;
+    }
+
+    /**
+     * Return a display label for the selected variable range preset.
+     *
+     * @param string $preset
+     * @return string
+     */
+    protected function get_feedback_variable_preset_label(string $preset): string {
+        $key = 'feedbackvariablepreset:' . $preset;
+        $manager = get_string_manager();
+        if ($manager->string_exists($key, 'block_catquiz_feedbackwizard')) {
+            return get_string($key, 'block_catquiz_feedbackwizard');
+        }
+        return $preset;
     }
 
     /**

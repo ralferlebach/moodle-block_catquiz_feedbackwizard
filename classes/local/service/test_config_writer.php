@@ -25,7 +25,6 @@
 namespace block_catquiz_feedbackwizard\local\service;
 
 use block_catquiz_feedbackwizard\catquiz_data;
-use block_catquiz_feedbackwizard\local\service\feedback_template_service;
 
 /**
  * Writes wizard state back into local_catquiz_tests.
@@ -153,6 +152,10 @@ class test_config_writer {
             'completionenabled' => $completionenabled ? 1 : 0,
             'sourcetestid' => (int)($wizardstate['sourcetestid'] ?? 0),
             'clonescope' => (string)($wizardstate['clonescope'] ?? 'full'),
+            'feedbackmode' => $feedbackconfig['feedbackmode'],
+            'feedbackdisplaymode' => $feedbackconfig['feedbackdisplaymode'],
+            'feedbackvariablepreset' => $feedbackconfig['feedbackvariablepreset'],
+            'feedbackcsvranges' => $feedbackconfig['feedbackcsvranges'],
             'reportingstrategy' => $feedbackconfig['reportingstrategy'],
             'feedbackrangecount' => $feedbackconfig['feedbackrangecount'],
             'feedbackranges' => $feedbackconfig['feedbackranges'],
@@ -188,6 +191,14 @@ class test_config_writer {
      */
     protected static function apply_feedback_state(array &$jsondata, array $wizardstate, int $mainscaleid): array {
         $subscaleids = array_values(array_map('intval', (array)($wizardstate['subscaleids'] ?? [])));
+        $feedbackmode = test_config_normalizer::normalise_feedback_mode((string)($wizardstate['feedbackmode'] ?? 'fixed'));
+        $feedbackdisplaymode = test_config_normalizer::normalise_feedback_display_mode(
+            (string)($wizardstate['feedbackdisplaymode'] ?? 'text_only')
+        );
+        $feedbackvariablepreset = test_config_normalizer::normalise_feedback_variable_preset(
+            (string)($wizardstate['feedbackvariablepreset'] ?? 'equal')
+        );
+        $feedbackcsvranges = (string)($wizardstate['feedbackcsvranges'] ?? '');
         $reportingstrategy = (string)($wizardstate['reportingstrategy'] ?? 'main_only');
         $range = catquiz_data::get_scale_range($mainscaleid);
         $feedbackrangecount = test_config_normalizer::normalise_feedback_range_count(
@@ -223,6 +234,10 @@ class test_config_writer {
         }
 
         return [
+            'feedbackmode' => $feedbackmode,
+            'feedbackdisplaymode' => $feedbackdisplaymode,
+            'feedbackvariablepreset' => $feedbackvariablepreset,
+            'feedbackcsvranges' => $feedbackcsvranges,
             'reportingstrategy' => $reportingstrategy,
             'feedbackrangecount' => $feedbackrangecount,
             'feedbackranges' => array_values($feedbackranges),

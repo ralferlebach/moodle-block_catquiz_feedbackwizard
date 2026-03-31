@@ -133,6 +133,8 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame('', $defaults['testgoal']);
         $this->assertSame(0, $defaults['completionenabled']);
         $this->assertSame(2, $defaults['feedbackrangecount']);
+        $this->assertSame('fixed', $defaults['feedbackmode']);
+        $this->assertSame('text_only', $defaults['feedbackdisplaymode']);
         $this->assertSame('main_only', $defaults['reportingstrategy']);
         $this->assertSame('Support', $defaults['feedbacklabel_1']);
         $this->assertSame(-3.0, $defaults['feedbacklower_1']);
@@ -233,4 +235,25 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame(-2.0, $ranges[0]['upper']);
         $this->assertSame(3, test_config_normalizer::normalise_feedback_range_count(8));
     }
+
+    /**
+     * Test parsing CSV feedback ranges and variable presets.
+     *
+     * @covers ::parse_csv_feedback_ranges
+     * @covers ::build_variable_feedback_ranges
+     * @return void
+     */
+    public function test_parse_csv_feedback_ranges_and_variable_presets(): void {
+        $csv = "label,lower,upper,text\nSupport,-3,0,Needs support\nSuccess,0,3,Doing well";
+        $ranges = test_config_normalizer::parse_csv_feedback_ranges($csv);
+        $variable = test_config_normalizer::build_variable_feedback_ranges(3, -3.0, 3.0, 'focus_low');
+
+        $this->assertCount(2, $ranges);
+        $this->assertSame('Support', $ranges[0]['label']);
+        $this->assertSame(-3.0, $ranges[0]['lower']);
+        $this->assertCount(3, $variable);
+        $this->assertLessThan(0.0, $variable[0]['upper']);
+        $this->assertSame(3.0, $variable[2]['upper']);
+    }
+
 }
