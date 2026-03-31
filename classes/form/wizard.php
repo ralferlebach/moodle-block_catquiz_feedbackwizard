@@ -34,7 +34,6 @@ use core_form\dynamic_form;
 use html_writer;
 use moodle_url;
 
-
 /**
  * Multi-step wizard form for CATQuiz setup.
  *
@@ -44,7 +43,7 @@ use moodle_url;
  */
 class wizard extends dynamic_form {
     /** @var int Number of wizard steps. */
-    const MAXSTEPS = 4;
+    const MAXSTEPS = 5;
 
     /**
      * Return context for the current submission.
@@ -145,6 +144,9 @@ class wizard extends dynamic_form {
                 $this->add_configuration_step($mform);
                 break;
             case 4:
+                $this->add_feedback_step($mform);
+                break;
+            case 5:
                 $this->add_review_step($mform);
                 break;
             default:
@@ -294,18 +296,10 @@ class wizard extends dynamic_form {
             );
         }
 
-        $mform->addElement(
-            'text',
-            'minquestioncount',
-            get_string('field:minquestioncount', 'block_catquiz_feedbackwizard')
-        );
+        $mform->addElement('text', 'minquestioncount', get_string('field:minquestioncount', 'block_catquiz_feedbackwizard'));
         $mform->setType('minquestioncount', PARAM_INT);
 
-        $mform->addElement(
-            'text',
-            'questioncount',
-            get_string('field:questioncount', 'block_catquiz_feedbackwizard')
-        );
+        $mform->addElement('text', 'questioncount', get_string('field:questioncount', 'block_catquiz_feedbackwizard'));
         $mform->setType('questioncount', PARAM_INT);
 
         $mform->addElement(
@@ -322,11 +316,7 @@ class wizard extends dynamic_form {
         );
         $mform->setType('timelimitenabled', PARAM_INT);
 
-        $mform->addElement(
-            'text',
-            'timelimitminutes',
-            get_string('field:timelimitminutes', 'block_catquiz_feedbackwizard')
-        );
+        $mform->addElement('text', 'timelimitminutes', get_string('field:timelimitminutes', 'block_catquiz_feedbackwizard'));
         $mform->setType('timelimitminutes', PARAM_INT);
         $mform->disabledIf('timelimitminutes', 'timelimitenabled', 'notchecked');
 
@@ -367,14 +357,115 @@ class wizard extends dynamic_form {
     }
 
     /**
+     * Add the fixed feedback step.
+     *
+     * @param \MoodleQuickForm $mform
+     * @return void
+     */
+    protected function add_feedback_step(\MoodleQuickForm $mform): void {
+        $mform->addElement('header', 'step4header', get_string('step04:title', 'block_catquiz_feedbackwizard'));
+        $mform->addElement('static', 'step4description', '', get_string('step04:description', 'block_catquiz_feedbackwizard'));
+
+        $state = $this->load_draft_state();
+        $mainscaleid = (int)($state['mainscaleid'] ?? 0);
+        $rangecount = $this->optional_param(
+            'feedbackrangecount',
+            (int)($state['feedbackrangecount'] ?? 3),
+            PARAM_INT
+        );
+        $state['feedbackrangecount'] = $rangecount;
+        $range = catquiz_data::get_scale_range($mainscaleid);
+        $feedbackdefaults = test_config_normalizer::build_feedback_defaults_from_wizard_state(
+            $state,
+            (float)$range['min'],
+            (float)$range['max']
+        );
+
+        $mform->addElement(
+            'select',
+            'feedbackrangecount',
+            get_string('field:feedbackrangecount', 'block_catquiz_feedbackwizard'),
+            [2 => '2', 3 => '3', 4 => '4', 5 => '5']
+        );
+        $mform->setType('feedbackrangecount', PARAM_INT);
+        $mform->setDefault('feedbackrangecount', $feedbackdefaults['feedbackrangecount']);
+
+        $mform->addElement(
+            'select',
+            'reportingstrategy',
+            get_string('field:reportingstrategy', 'block_catquiz_feedbackwizard'),
+            [
+                'main_only' => get_string('reporting:main_only', 'block_catquiz_feedbackwizard'),
+                'subscales_only' => get_string('reporting:subscales_only', 'block_catquiz_feedbackwizard'),
+                'main_and_subscales_separate' =>
+                    get_string('reporting:main_and_subscales_separate', 'block_catquiz_feedbackwizard'),
+                'subscales_with_parents_without_main' =>
+                    get_string('reporting:subscales_with_parents_without_main', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('reportingstrategy', PARAM_ALPHAEXT);
+        $mform->setDefault('reportingstrategy', $feedbackdefaults['reportingstrategy']);
+
+        $mform->addElement(
+            'static',
+            'feedbacktokeninfo',
+            '',
+            get_string('message:feedbacktokeninfo', 'block_catquiz_feedbackwizard')
+        );
+
+        $rangecount = (int)$feedbackdefaults['feedbackrangecount'];
+        for ($index = 1; $index <= $rangecount; $index++) {
+            $mform->addElement(
+                'header',
+                'feedbackrangeheader_' . $index,
+                get_string('field:feedbackrangeheader', 'block_catquiz_feedbackwizard', $index)
+            );
+            $mform->setExpanded('feedbackrangeheader_' . $index, true);
+
+            $mform->addElement(
+                'text',
+                'feedbacklabel_' . $index,
+                get_string('field:feedbacklabel', 'block_catquiz_feedbackwizard', $index)
+            );
+            $mform->setType('feedbacklabel_' . $index, PARAM_TEXT);
+            $mform->setDefault('feedbacklabel_' . $index, $feedbackdefaults['feedbacklabel_' . $index] ?? '');
+
+            $mform->addElement(
+                'text',
+                'feedbacklower_' . $index,
+                get_string('field:feedbacklower', 'block_catquiz_feedbackwizard', $index)
+            );
+            $mform->setType('feedbacklower_' . $index, PARAM_FLOAT);
+            $mform->setDefault('feedbacklower_' . $index, $feedbackdefaults['feedbacklower_' . $index] ?? 0);
+
+            $mform->addElement(
+                'text',
+                'feedbackupper_' . $index,
+                get_string('field:feedbackupper', 'block_catquiz_feedbackwizard', $index)
+            );
+            $mform->setType('feedbackupper_' . $index, PARAM_FLOAT);
+            $mform->setDefault('feedbackupper_' . $index, $feedbackdefaults['feedbackupper_' . $index] ?? 0);
+
+            $mform->addElement(
+                'textarea',
+                'feedbacktext_' . $index,
+                get_string('field:feedbacktext', 'block_catquiz_feedbackwizard', $index),
+                ['rows' => 4, 'cols' => 80]
+            );
+            $mform->setType('feedbacktext_' . $index, PARAM_RAW);
+            $mform->setDefault('feedbacktext_' . $index, $feedbackdefaults['feedbacktext_' . $index] ?? '');
+        }
+    }
+
+    /**
      * Add the review step.
      *
      * @param \MoodleQuickForm $mform
      * @return void
      */
     protected function add_review_step(\MoodleQuickForm $mform): void {
-        $mform->addElement('header', 'step4header', get_string('step04:title', 'block_catquiz_feedbackwizard'));
-        $mform->addElement('static', 'step4description', '', get_string('step04:description', 'block_catquiz_feedbackwizard'));
+        $mform->addElement('header', 'step5header', get_string('step05:title', 'block_catquiz_feedbackwizard'));
+        $mform->addElement('static', 'step5description', '', get_string('step05:description', 'block_catquiz_feedbackwizard'));
         $mform->addElement(
             'static',
             'reviewsummary',
@@ -439,6 +530,53 @@ class wizard extends dynamic_form {
                 && (int)$data['minquestioncount'] > (int)$data['questioncount']
             ) {
                 $errors['questioncount'] = get_string('error:minlargerthanmax', 'block_catquiz_feedbackwizard');
+            }
+        }
+
+        if ($step === 4) {
+            $rangecount = test_config_normalizer::normalise_feedback_range_count((int)($data['feedbackrangecount'] ?? 0));
+            $reportingstrategy = (string)($data['reportingstrategy'] ?? '');
+            $subscaleids = array_filter(array_map('intval', (array)($data['subscaleids'] ?? [])));
+            if ($reportingstrategy === '') {
+                $errors['reportingstrategy'] = get_string('required');
+            }
+            if (
+                in_array($reportingstrategy, ['subscales_only', 'subscales_with_parents_without_main'], true)
+                && empty($subscaleids)
+            ) {
+                $errors['reportingstrategy'] = get_string('error:reportingsubscalesrequired', 'block_catquiz_feedbackwizard');
+            }
+
+            $previousupper = null;
+            for ($index = 1; $index <= $rangecount; $index++) {
+                $label = trim((string)($data['feedbacklabel_' . $index] ?? ''));
+                $text = trim((string)($data['feedbacktext_' . $index] ?? ''));
+                $lower = $data['feedbacklower_' . $index] ?? null;
+                $upper = $data['feedbackupper_' . $index] ?? null;
+
+                if ($label === '') {
+                    $errors['feedbacklabel_' . $index] = get_string('required');
+                }
+                if ($text === '') {
+                    $errors['feedbacktext_' . $index] = get_string('required');
+                }
+                if ($lower === null || $lower === '') {
+                    $errors['feedbacklower_' . $index] = get_string('required');
+                }
+                if ($upper === null || $upper === '') {
+                    $errors['feedbackupper_' . $index] = get_string('required');
+                }
+                if ($lower !== null && $lower !== '' && $upper !== null && $upper !== '' && (float)$lower >= (float)$upper) {
+                    $errors['feedbackupper_' . $index] = get_string('error:feedbackinvalidrange', 'block_catquiz_feedbackwizard');
+                }
+                if ($previousupper !== null && $lower !== null && $lower !== '') {
+                    if (abs((float)$previousupper - (float)$lower) > 0.001) {
+                        $errors['feedbacklower_' . $index] = get_string('error:feedbackrangegap', 'block_catquiz_feedbackwizard');
+                    }
+                }
+                if ($upper !== null && $upper !== '') {
+                    $previousupper = (float)$upper;
+                }
             }
         }
 
@@ -563,14 +701,8 @@ class wizard extends dynamic_form {
      * @return string
      */
     protected function build_review_summary(): string {
-        $draftid = $this->optional_param('draftid', 0, PARAM_INT);
-        if ($draftid < 1) {
-            return get_string('message:reviewsummary', 'block_catquiz_feedbackwizard');
-        }
-
-        $draft = new draft_persistent($draftid);
-        $data = json_decode((string)$draft->get('datajson'), true);
-        if (!is_array($data)) {
+        $data = $this->load_draft_state();
+        if (empty($data)) {
             return get_string('message:reviewsummary', 'block_catquiz_feedbackwizard');
         }
 
@@ -594,6 +726,24 @@ class wizard extends dynamic_form {
             s((string)($data['testgoal'] ?? ''));
         $summary[] = get_string('field:completionenabled', 'block_catquiz_feedbackwizard') . ': ' .
             (!empty($data['completionenabled']) ? get_string('yes') : get_string('no'));
+        $summary[] = get_string('field:reportingstrategy', 'block_catquiz_feedbackwizard') . ': ' .
+            s($this->get_reporting_strategy_label((string)($data['reportingstrategy'] ?? 'main_only')));
+        $summary[] = get_string('field:feedbackrangecount', 'block_catquiz_feedbackwizard') . ': ' .
+            (int)($data['feedbackrangecount'] ?? 0);
+
+        $range = catquiz_data::get_scale_range((int)($data['mainscaleid'] ?? 0));
+        $feedbackfields = test_config_normalizer::build_feedback_defaults_from_wizard_state(
+            $data,
+            (float)$range['min'],
+            (float)$range['max']
+        );
+        $rangecount = (int)($feedbackfields['feedbackrangecount'] ?? 0);
+        for ($index = 1; $index <= $rangecount; $index++) {
+            $summary[] = get_string('field:feedbackrangeheader', 'block_catquiz_feedbackwizard', $index) . ': ' .
+                s((string)($feedbackfields['feedbacklabel_' . $index] ?? '')) . ' [' .
+                s((string)($feedbackfields['feedbacklower_' . $index] ?? '')) . ' - ' .
+                s((string)($feedbackfields['feedbackupper_' . $index] ?? '')) . ']';
+        }
 
         foreach ($this->build_review_warnings($data) as $warning) {
             $summary[] = get_string('field:reviewwarning', 'block_catquiz_feedbackwizard') . ': ' . s($warning);
@@ -645,7 +795,72 @@ class wizard extends dynamic_form {
             $warnings[] = get_string('warning:shorttimelimit', 'block_catquiz_feedbackwizard');
         }
 
+        $reportingstrategy = (string)($data['reportingstrategy'] ?? 'main_only');
+        if (
+            in_array($reportingstrategy, ['subscales_only', 'subscales_with_parents_without_main'], true)
+            && empty($data['subscaleids'])
+        ) {
+            $warnings[] = get_string('warning:reportingsubscaleswithoutselection', 'block_catquiz_feedbackwizard');
+        }
+
+        $range = catquiz_data::get_scale_range((int)($data['mainscaleid'] ?? 0));
+        $feedbackfields = test_config_normalizer::build_feedback_defaults_from_wizard_state(
+            $data,
+            (float)$range['min'],
+            (float)$range['max']
+        );
+        $rangecount = (int)($feedbackfields['feedbackrangecount'] ?? 0);
+        $previousupper = null;
+        for ($index = 1; $index <= $rangecount; $index++) {
+            $lower = isset($feedbackfields['feedbacklower_' . $index]) ? (float)$feedbackfields['feedbacklower_' . $index] : null;
+            $upper = isset($feedbackfields['feedbackupper_' . $index]) ? (float)$feedbackfields['feedbackupper_' . $index] : null;
+            if ($lower !== null && $upper !== null && $lower >= $upper) {
+                $warnings[] = get_string('warning:feedbackrangesneedreview', 'block_catquiz_feedbackwizard');
+                break;
+            }
+            if ($previousupper !== null && $lower !== null && abs($previousupper - $lower) > 0.001) {
+                $warnings[] = get_string('warning:feedbackrangesneedreview', 'block_catquiz_feedbackwizard');
+                break;
+            }
+            if (trim((string)($feedbackfields['feedbacktext_' . $index] ?? '')) === '') {
+                $warnings[] = get_string('warning:feedbacktextmissing', 'block_catquiz_feedbackwizard');
+                break;
+            }
+            $previousupper = $upper;
+        }
+
         return $warnings;
+    }
+
+    /**
+     * Load the current draft state.
+     *
+     * @return array
+     */
+    protected function load_draft_state(): array {
+        $draftid = $this->optional_param('draftid', 0, PARAM_INT);
+        if ($draftid < 1) {
+            return [];
+        }
+
+        $draft = new draft_persistent($draftid);
+        $data = json_decode((string)$draft->get('datajson'), true);
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * Return a display label for the selected reporting strategy.
+     *
+     * @param string $reportingstrategy
+     * @return string
+     */
+    protected function get_reporting_strategy_label(string $reportingstrategy): string {
+        $key = 'reporting:' . $reportingstrategy;
+        $manager = get_string_manager();
+        if ($manager->string_exists($key, 'block_catquiz_feedbackwizard')) {
+            return get_string($key, 'block_catquiz_feedbackwizard');
+        }
+        return $reportingstrategy;
     }
 
     /**

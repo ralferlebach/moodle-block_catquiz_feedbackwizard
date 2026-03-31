@@ -24,6 +24,7 @@
 
 namespace block_catquiz_feedbackwizard\local\service;
 
+use block_catquiz_feedbackwizard\catquiz_data;
 
 /**
  * Normalises local_catquiz test JSON into wizard defaults.
@@ -33,6 +34,12 @@ namespace block_catquiz_feedbackwizard\local\service;
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class test_config_normalizer {
+    /** @var int Minimum supported fixed feedback ranges. */
+    const MIN_FEEDBACK_RANGES = 2;
+
+    /** @var int Maximum supported fixed feedback ranges. */
+    const MAX_FEEDBACK_RANGES = 5;
+
     /**
      * Build wizard defaults from a local_catquiz_tests record.
      *
@@ -45,8 +52,9 @@ class test_config_normalizer {
         $jsondata = self::decode_json((string)($testrecord->json ?? ''));
         $wizarddata = self::extract_existing_wizard_state($jsondata);
         $mainscaleid = self::extract_mainscaleid($testrecord, $jsondata, $wizarddata);
+        $subscaleids = self::extract_subscale_ids($jsondata, $wizarddata);
 
-        return [
+        $defaults = [
             'selectedtest' => (int)$testrecord->id,
             'testid' => (int)$testrecord->id,
             'wizardmode' => $mode,
@@ -54,7 +62,7 @@ class test_config_normalizer {
             'clonescope' => (string)($wizarddata['clonescope'] ?? 'full'),
             'scenario' => (string)($wizarddata['scenario'] ?? ''),
             'mainscaleid' => $mainscaleid,
-            'subscaleids' => self::extract_subscale_ids($jsondata, $wizarddata),
+            'subscaleids' => $subscaleids,
             'minquestioncount' => self::extract_min_question_count($jsondata, $wizarddata),
             'questioncount' => self::extract_question_count($jsondata, $wizarddata),
             'questioncountpersubscale' => self::extract_question_count_per_subscale($jsondata, $wizarddata),
@@ -64,8 +72,9 @@ class test_config_normalizer {
             'testgoal' => self::extract_test_goal($wizarddata),
             'completionenabled' => self::extract_completion_enabled($jsondata, $wizarddata),
         ];
-    }
 
+        return array_merge($defaults, self::build_feedback_defaults($jsondata, $wizarddata, $mainscaleid, $subscaleids));
+    }
 
     /**
      * Merge clone defaults into a target wizard state.
@@ -224,7 +233,7 @@ class test_config_normalizer {
     }
 
     /**
-     * Extract maximum question count per subscale.
+     * Extract question count per subscale.
      *
      * @param array $jsondata
      * @param array $wizarddata
@@ -238,7 +247,7 @@ class test_config_normalizer {
     }
 
     /**
-     * Extract whether the test currently uses a time limit.
+     * Extract whether a time limit is enabled.
      *
      * @param array $jsondata
      * @param array $wizarddata
@@ -329,5 +338,310 @@ class test_config_normalizer {
             return !empty($wizarddata['completionenabled']) ? 1 : 0;
         }
         return !empty($jsondata['completion']) ? 1 : 0;
+    }
+
+    /**
+     * Build flattened feedback defaults for the wizard form.
+     *
+     * @param array $jsondata
+     * @param array $wizarddata
+     * @param int $mainscaleid
+     * @param array $subscaleids
+     * @return array
+     */
+    public static function build_feedback_defaults(
+        array $jsondata,
+        array $wizarddata,
+        int $mainscaleid,
+        array $subscaleids
+    ): array {
+        $range = catquiz_data::get_scale_range($mainscaleid);
+        $rangecount = self::normalise_feedback_range_count(
+            (int)($wizarddata['feedbackrangecount'] ?? $jsondata['numberoffeedbackoptionsselect'] ?? 0)
+        );
+        $reportingstrategy = self::extract_reporting_strategy($jsondata, $wizarddata, $mainscaleid, $subscaleids);
+        $ranges = self::extract_feedback_ranges($jsondata, $wizarddata, $mainscaleid, $rangecount, $range['min'], $range['max']);
+
+        $defaults = [
+            'feedbackrangecount' => $rangecount,
+            'reportingstrategy' => $reportingstrategy,
+        ];
+        return array_merge($defaults, self::flatten_feedback_ranges($ranges));
+    }
+
+    /**
+     * Build feedback defaults from the current wizard state.
+     *
+     * @param array $state
+     * @param float $minimum
+     * @param float $maximum
+     * @return array
+     */
+    public static function build_feedback_defaults_from_wizard_state(array $state, float $minimum, float $maximum): array {
+        $rangecount = self::normalise_feedback_range_count((int)($state['feedbackrangecount'] ?? 0));
+        $ranges = self::extract_feedback_ranges_from_state($state, $rangecount, $minimum, $maximum);
+        $defaults = [
+            'feedbackrangecount' => $rangecount,
+            'reportingstrategy' => (string)($state['reportingstrategy'] ?? 'main_only'),
+        ];
+        return array_merge($defaults, self::flatten_feedback_ranges($ranges));
+    }
+
+    /**
+     * Normalise the configured feedback range count.
+     *
+     * @param int $rangecount
+     * @return int
+     */
+    public static function normalise_feedback_range_count(int $rangecount): int {
+        if ($rangecount < self::MIN_FEEDBACK_RANGES || $rangecount > self::MAX_FEEDBACK_RANGES) {
+            return 3;
+        }
+        return $rangecount;
+    }
+
+    /**
+     * Extract feedback ranges from the wizard state.
+     *
+     * @param array $state
+     * @param int $rangecount
+     * @param float $minimum
+     * @param float $maximum
+     * @return array
+     */
+    public static function extract_feedback_ranges_from_state(
+        array $state,
+        int $rangecount,
+        float $minimum,
+        float $maximum
+    ): array {
+        if (!empty($state['feedbackranges']) && is_array($state['feedbackranges'])) {
+            $ranges = [];
+            foreach ((array)$state['feedbackranges'] as $range) {
+                $ranges[] = [
+                    'label' => (string)($range['label'] ?? ''),
+                    'lower' => (float)($range['lower'] ?? 0),
+                    'upper' => (float)($range['upper'] ?? 0),
+                    'text' => (string)($range['text'] ?? ''),
+                ];
+            }
+            if (!empty($ranges)) {
+                return $ranges;
+            }
+        }
+
+        $ranges = [];
+        for ($index = 1; $index <= $rangecount; $index++) {
+            $ranges[] = [
+                'label' => (string)($state['feedbacklabel_' . $index] ?? ''),
+                'lower' => isset($state['feedbacklower_' . $index]) ? (float)$state['feedbacklower_' . $index] : null,
+                'upper' => isset($state['feedbackupper_' . $index]) ? (float)$state['feedbackupper_' . $index] : null,
+                'text' => (string)($state['feedbacktext_' . $index] ?? ''),
+            ];
+        }
+
+        if (self::has_non_empty_feedback_ranges($ranges)) {
+            return self::merge_feedback_ranges_with_defaults($ranges, $minimum, $maximum);
+        }
+
+        return self::build_default_feedback_ranges($rangecount, $minimum, $maximum);
+    }
+
+    /**
+     * Extract the reporting strategy.
+     *
+     * @param array $jsondata
+     * @param array $wizarddata
+     * @param int $mainscaleid
+     * @param array $subscaleids
+     * @return string
+     */
+    public static function extract_reporting_strategy(
+        array $jsondata,
+        array $wizarddata,
+        int $mainscaleid,
+        array $subscaleids
+    ): string {
+        if (!empty($wizarddata['reportingstrategy'])) {
+            return (string)$wizarddata['reportingstrategy'];
+        }
+
+        $subscaleids = array_values(array_unique(array_map('intval', $subscaleids)));
+        sort($subscaleids);
+
+        if ($mainscaleid < 1) {
+            return 'main_only';
+        }
+
+        $mainreported = !empty($jsondata['catquiz_scalereportcheckbox_' . $mainscaleid]);
+        $reportedsubscaleids = [];
+        foreach ($subscaleids as $subscaleid) {
+            if (!empty($jsondata['catquiz_scalereportcheckbox_' . $subscaleid])) {
+                $reportedsubscaleids[] = $subscaleid;
+            }
+        }
+
+        if ($mainreported && empty($reportedsubscaleids)) {
+            return 'main_only';
+        }
+        if ($mainreported && !empty($reportedsubscaleids)) {
+            return 'main_and_subscales_separate';
+        }
+        if (!empty($reportedsubscaleids)) {
+            $parents = catquiz_data::get_parent_scale_ids($reportedsubscaleids, $mainscaleid);
+            if (!empty($parents)) {
+                return 'subscales_with_parents_without_main';
+            }
+            return 'subscales_only';
+        }
+
+        return 'main_only';
+    }
+
+    /**
+     * Extract feedback ranges from saved JSON or wizard state.
+     *
+     * @param array $jsondata
+     * @param array $wizarddata
+     * @param int $mainscaleid
+     * @param int $rangecount
+     * @param float $minimum
+     * @param float $maximum
+     * @return array
+     */
+    public static function extract_feedback_ranges(
+        array $jsondata,
+        array $wizarddata,
+        int $mainscaleid,
+        int $rangecount,
+        float $minimum,
+        float $maximum
+    ): array {
+        $ranges = self::extract_feedback_ranges_from_state($wizarddata, $rangecount, $minimum, $maximum);
+        if (self::has_non_empty_feedback_ranges($ranges)) {
+            return self::merge_feedback_ranges_with_defaults($ranges, $minimum, $maximum);
+        }
+
+        $ranges = [];
+        for ($index = 1; $index <= $rangecount; $index++) {
+            $ranges[] = [
+                'label' => 'Range ' . $index,
+                'lower' => isset($jsondata['feedback_scaleid_limit_lower_' . $mainscaleid . '_' . $index])
+                    ? (float)$jsondata['feedback_scaleid_limit_lower_' . $mainscaleid . '_' . $index]
+                    : null,
+                'upper' => isset($jsondata['feedback_scaleid_limit_upper_' . $mainscaleid . '_' . $index])
+                    ? (float)$jsondata['feedback_scaleid_limit_upper_' . $mainscaleid . '_' . $index]
+                    : null,
+                'text' => self::extract_feedback_text($jsondata, $mainscaleid, $index),
+            ];
+        }
+
+        if (self::has_non_empty_feedback_ranges($ranges)) {
+            return self::merge_feedback_ranges_with_defaults($ranges, $minimum, $maximum);
+        }
+
+        return self::build_default_feedback_ranges($rangecount, $minimum, $maximum);
+    }
+
+    /**
+     * Flatten feedback ranges to single form fields.
+     *
+     * @param array $ranges
+     * @return array
+     */
+    public static function flatten_feedback_ranges(array $ranges): array {
+        $fields = [];
+        foreach (array_values($ranges) as $index => $range) {
+            $fieldindex = $index + 1;
+            $fields['feedbacklabel_' . $fieldindex] = (string)($range['label'] ?? '');
+            $fields['feedbacklower_' . $fieldindex] = (float)($range['lower'] ?? 0);
+            $fields['feedbackupper_' . $fieldindex] = (float)($range['upper'] ?? 0);
+            $fields['feedbacktext_' . $fieldindex] = (string)($range['text'] ?? '');
+        }
+        return $fields;
+    }
+
+    /**
+     * Build default fixed feedback ranges.
+     *
+     * @param int $rangecount
+     * @param float $minimum
+     * @param float $maximum
+     * @return array
+     */
+    public static function build_default_feedback_ranges(int $rangecount, float $minimum, float $maximum): array {
+        $rangecount = self::normalise_feedback_range_count($rangecount);
+        if ($minimum >= $maximum) {
+            $minimum = catquiz_data::DEFAULT_SCALE_MIN;
+            $maximum = catquiz_data::DEFAULT_SCALE_MAX;
+        }
+
+        $step = ($maximum - $minimum) / $rangecount;
+        $ranges = [];
+        for ($index = 1; $index <= $rangecount; $index++) {
+            $lower = $minimum + (($index - 1) * $step);
+            $upper = $index === $rangecount ? $maximum : $minimum + ($index * $step);
+            $ranges[] = [
+                'label' => 'Range ' . $index,
+                'lower' => round($lower, 2),
+                'upper' => round($upper, 2),
+                'text' => 'Feedback for {{result.ranklabel}} in {{result.scalename}}.',
+            ];
+        }
+        return $ranges;
+    }
+
+    /**
+     * Merge partial feedback ranges with generated defaults.
+     *
+     * @param array $ranges
+     * @param float $minimum
+     * @param float $maximum
+     * @return array
+     */
+    protected static function merge_feedback_ranges_with_defaults(array $ranges, float $minimum, float $maximum): array {
+        $defaults = self::build_default_feedback_ranges(count($ranges), $minimum, $maximum);
+        foreach ($ranges as $index => $range) {
+            foreach (['label', 'lower', 'upper', 'text'] as $key) {
+                if ($range[$key] === null || $range[$key] === '') {
+                    $ranges[$index][$key] = $defaults[$index][$key];
+                }
+            }
+        }
+        return $ranges;
+    }
+
+    /**
+     * Return whether a range array contains meaningful values.
+     *
+     * @param array $ranges
+     * @return bool
+     */
+    protected static function has_non_empty_feedback_ranges(array $ranges): bool {
+        foreach ($ranges as $range) {
+            if (!empty($range['label']) || !empty($range['text']) || $range['lower'] !== null || $range['upper'] !== null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Extract one feedback editor text from saved JSON.
+     *
+     * @param array $jsondata
+     * @param int $scaleid
+     * @param int $rangeindex
+     * @return string
+     */
+    protected static function extract_feedback_text(array $jsondata, int $scaleid, int $rangeindex): string {
+        $value = $jsondata['feedbackeditor_scaleid_' . $scaleid . '_' . $rangeindex] ?? '';
+        if (is_array($value)) {
+            return (string)($value['text'] ?? '');
+        }
+        if (is_object($value)) {
+            return (string)($value->text ?? '');
+        }
+        return (string)$value;
     }
 }

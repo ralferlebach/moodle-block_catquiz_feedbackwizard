@@ -82,6 +82,14 @@ final class test_config_normalizer_test extends \advanced_testcase {
                 'catquiz_standarderrorgroup' => [
                     'catquiz_standarderror_min' => 0.2,
                 ],
+                'numberoffeedbackoptionsselect' => 2,
+                'feedback_scaleid_limit_lower_8_1' => -3.0,
+                'feedback_scaleid_limit_upper_8_1' => 0.0,
+                'feedback_scaleid_limit_lower_8_2' => 0.0,
+                'feedback_scaleid_limit_upper_8_2' => 3.0,
+                'feedbackeditor_scaleid_8_1' => ['text' => 'Needs support'],
+                'feedbackeditor_scaleid_8_2' => ['text' => 'Doing well'],
+                'catquiz_scalereportcheckbox_8' => 1,
             ]),
         ];
 
@@ -98,8 +106,12 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame('high', $defaults['precisionmode']);
         $this->assertSame('', $defaults['testgoal']);
         $this->assertSame(0, $defaults['completionenabled']);
+        $this->assertSame(2, $defaults['feedbackrangecount']);
+        $this->assertSame('main_only', $defaults['reportingstrategy']);
+        $this->assertSame('Range 1', $defaults['feedbacklabel_1']);
+        $this->assertSame(-3.0, $defaults['feedbacklower_1']);
+        $this->assertSame('Needs support', $defaults['feedbacktext_1']);
     }
-
 
     /**
      * Test extracting a precision mode from standard error settings.
@@ -172,5 +184,22 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame(2, $conditions['mainscaleid']);
         $this->assertSame(25, $conditions['questioncount']);
         $this->assertSame('placement', $conditions['testgoal']);
+    }
+
+    /**
+     * Test building default fixed feedback ranges.
+     *
+     * @covers ::build_default_feedback_ranges
+     * @covers ::normalise_feedback_range_count
+     * @return void
+     */
+    public function test_build_default_feedback_ranges(): void {
+        $ranges = test_config_normalizer::build_default_feedback_ranges(4, -4.0, 4.0);
+
+        $this->assertCount(4, $ranges);
+        $this->assertSame('Range 1', $ranges[0]['label']);
+        $this->assertSame(-4.0, $ranges[0]['lower']);
+        $this->assertSame(-2.0, $ranges[0]['upper']);
+        $this->assertSame(3, test_config_normalizer::normalise_feedback_range_count(8));
     }
 }

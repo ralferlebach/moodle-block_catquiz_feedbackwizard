@@ -26,7 +26,6 @@ namespace block_catquiz_feedbackwizard\local\service;
 
 use block_catquiz_feedbackwizard\catquiz_data;
 
-
 /**
  * Writes wizard state back into local_catquiz_tests.
  *
@@ -136,6 +135,8 @@ class test_config_writer {
         $jsondata['completion'] = $completionenabled ? 1 : 0;
         $jsondata['completionview'] = $completionenabled ? 1 : 0;
 
+        $feedbackconfig = self::apply_feedback_state($jsondata, $wizardstate, $mainscaleid);
+
         $jsondata['catquiz_wizard'] = [
             'wizardmode' => (string)($wizardstate['wizardmode'] ?? 'edit'),
             'scenario' => (string)($wizardstate['scenario'] ?? ''),
@@ -151,6 +152,9 @@ class test_config_writer {
             'completionenabled' => $completionenabled ? 1 : 0,
             'sourcetestid' => (int)($wizardstate['sourcetestid'] ?? 0),
             'clonescope' => (string)($wizardstate['clonescope'] ?? 'full'),
+            'reportingstrategy' => $feedbackconfig['reportingstrategy'],
+            'feedbackrangecount' => $feedbackconfig['feedbackrangecount'],
+            'feedbackranges' => $feedbackconfig['feedbackranges'],
         ];
 
         return $jsondata;
@@ -170,6 +174,83 @@ class test_config_writer {
                 return [0.6, 1.0];
             default:
                 return [0.35, 1.0];
+        }
+    }
+
+    /**
+     * Apply fixed feedback ranges and reporting settings to the CAT JSON payload.
+     *
+     * @param array $jsondata
+     * @param array $wizardstate
+     * @param int $mainscaleid
+     * @return array
+     */
+    protected static function apply_feedback_state(array &$jsondata, array $wizardstate, int $mainscaleid): array {
+        $subscaleids = array_values(array_map('intval', (array)($wizardstate['subscaleids'] ?? [])));
+        $reportingstrategy = (string)($wizardstate['reportingstrategy'] ?? 'main_only');
+        $range = catquiz_data::get_scale_range($mainscaleid);
+        $feedbackrangecount = test_config_normalizer::normalise_feedback_range_count(
+            (int)($wizardstate['feedbackrangecount'] ?? 0)
+        );
+        $feedbackranges = test_config_normalizer::extract_feedback_ranges_from_state(
+            $wizardstate,
+            $feedbackrangecount,
+            $range['min'],
+            $range['max']
+        );
+        $reportscaleids = catquiz_data::get_reporting_scale_ids($mainscaleid, $subscaleids, $reportingstrategy);
+        if (empty($reportscaleids) && $mainscaleid > 0) {
+            $reportscaleids = [$mainscaleid];
+            $reportingstrategy = 'main_only';
+        }
+
+        self::clear_feedback_keys($jsondata, catquiz_data::get_scale_tree_ids($mainscaleid));
+        $jsondata['numberoffeedbackoptionsselect'] = $feedbackrangecount;
+
+        foreach ($reportscaleids as $scaleid) {
+            $jsondata['catquiz_scalereportcheckbox_' . $scaleid] = 1;
+            foreach (array_values($feedbackranges) as $index => $feedbackrange) {
+                $rangeindex = $index + 1;
+                $jsondata['feedback_scaleid_limit_lower_' . $scaleid . '_' . $rangeindex] = (float)$feedbackrange['lower'];
+                $jsondata['feedback_scaleid_limit_upper_' . $scaleid . '_' . $rangeindex] = (float)$feedbackrange['upper'];
+                $jsondata['feedbackeditor_scaleid_' . $scaleid . '_' . $rangeindex] = [
+                    'text' => (string)$feedbackrange['text'],
+                    'format' => '1',
+                    'itemid' => '0',
+                ];
+            }
+        }
+
+        return [
+            'reportingstrategy' => $reportingstrategy,
+            'feedbackrangecount' => $feedbackrangecount,
+            'feedbackranges' => array_values($feedbackranges),
+        ];
+    }
+
+    /**
+     * Remove feedback-related keys for the currently managed scale tree.
+     *
+     * @param array $jsondata
+     * @param array $scaleids
+     * @return void
+     */
+    protected static function clear_feedback_keys(array &$jsondata, array $scaleids): void {
+        if (empty($scaleids)) {
+            return;
+        }
+
+        foreach (array_keys($jsondata) as $key) {
+            if (preg_match(
+                '/^(catquiz_scalereportcheckbox_|feedback_scaleid_limit_lower_|'
+                . 'feedback_scaleid_limit_upper_|feedbackeditor_scaleid_)(\d+)(?:_\d+)?$/',
+                $key,
+                $matches
+            )) {
+                if (in_array((int)$matches[2], $scaleids, true)) {
+                    unset($jsondata[$key]);
+                }
+            }
         }
     }
 }

@@ -24,7 +24,6 @@
 
 namespace block_catquiz_feedbackwizard;
 
-
 /**
  * Data access helper methods for the CATQuiz wizard.
  *
@@ -33,6 +32,12 @@ namespace block_catquiz_feedbackwizard;
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class catquiz_data {
+    /** @var float Default lower ability boundary. */
+    const DEFAULT_SCALE_MIN = -5.0;
+
+    /** @var float Default upper ability boundary. */
+    const DEFAULT_SCALE_MAX = 5.0;
+
     /**
      * Return CAT tests for a course.
      *
@@ -162,6 +167,63 @@ class catquiz_data {
     }
 
     /**
+     * Return one catscale record.
+     *
+     * @param int $scaleid
+     * @return \stdClass|null
+     */
+    public static function get_scale_by_id(int $scaleid): ?\stdClass {
+        global $DB;
+
+        if ($scaleid < 1) {
+            return null;
+        }
+
+        $record = $DB->get_record(
+            'local_catquiz_catscales',
+            ['id' => $scaleid],
+            'id, parentid, name, minscalevalue, maxscalevalue'
+        );
+
+        return $record ?: null;
+    }
+
+    /**
+     * Return the ability range for a scale, preferring the root scale values.
+     *
+     * @param int $scaleid
+     * @return array
+     */
+    public static function get_scale_range(int $scaleid): array {
+        $record = self::get_scale_by_id($scaleid);
+        if (!$record) {
+            return ['min' => self::DEFAULT_SCALE_MIN, 'max' => self::DEFAULT_SCALE_MAX];
+        }
+
+        $current = $record;
+        while ($current && (int)$current->parentid > 0) {
+            $parent = self::get_scale_by_id((int)$current->parentid);
+            if (!$parent) {
+                break;
+            }
+            if ($parent->minscalevalue !== null || $parent->maxscalevalue !== null) {
+                $current = $parent;
+            } else {
+                break;
+            }
+        }
+
+        $minimum = $current->minscalevalue !== null ? (float)$current->minscalevalue : self::DEFAULT_SCALE_MIN;
+        $maximum = $current->maxscalevalue !== null ? (float)$current->maxscalevalue : self::DEFAULT_SCALE_MAX;
+
+        if ($minimum >= $maximum) {
+            return ['min' => self::DEFAULT_SCALE_MIN, 'max' => self::DEFAULT_SCALE_MAX];
+        }
+
+        return ['min' => $minimum, 'max' => $maximum];
+    }
+
+    /**
      * Return subscale option labels for a main scale.
      *
      * @param int $mainscaleid
@@ -220,6 +282,135 @@ class catquiz_data {
     }
 
     /**
+     * Return all scale ids in the selected main-scale tree.
+     *
+     * @param int $mainscaleid
+     * @return array
+     */
+    public static function get_scale_tree_ids(int $mainscaleid): array {
+        if ($mainscaleid < 1) {
+            return [];
+        }
+
+        $ids = [$mainscaleid];
+        foreach (self::get_subscale_records($mainscaleid) as $record) {
+            $ids[] = (int)$record->id;
+        }
+
+        $ids = array_values(array_unique(array_filter($ids)));
+        sort($ids);
+        return $ids;
+    }
+
+    /**
+     * Return all direct parent ids for the selected subscales, excluding the root scale.
+     *
+     * @param array $subscaleids
+     * @param int $mainscaleid
+     * @return array
+     */
+    public static function get_parent_scale_ids(array $subscaleids, int $mainscaleid): array {
+        $parentids = [];
+        foreach (array_values(array_unique(array_map('intval', $subscaleids))) as $subscaleid) {
+            $current = self::get_scale_by_id($subscaleid);
+            while ($current && (int)$current->parentid > 0 && (int)$current->parentid !== $mainscaleid) {
+                $parentids[] = (int)$current->parentid;
+                $current = self::get_scale_by_id((int)$current->parentid);
+            }
+        }
+
+        $parentids = array_values(array_unique(array_filter($parentids)));
+        sort($parentids);
+        return $parentids;
+    }
+
+    /**
+     * Resolve report scale ids from a reporting strategy.
+     *
+     * @param int $mainscaleid
+     * @param array $subscaleids
+     * @param string $reportingstrategy
+     * @return array
+     */
+    public static function get_reporting_scale_ids(int $mainscaleid, array $subscaleids, string $reportingstrategy): array {
+        $subscaleids = array_values(array_unique(array_filter(array_map('intval', $subscaleids))));
+        sort($subscaleids);
+
+        switch ($reportingstrategy) {
+            case 'subscales_only':
+                $scaleids = $subscaleids;
+                break;
+            case 'main_and_subscales_separate':
+                $scaleids = array_merge([$mainscaleid], $subscaleids);
+                break;
+            case 'subscales_with_parents_without_main':
+                $scaleids = array_merge($subscaleids, self::get_parent_scale_ids($subscaleids, $mainscaleid));
+                break;
+            case 'main_only':
+            default:
+                $scaleids = [$mainscaleid];
+                break;
+        }
+
+        $scaleids = array_values(array_unique(array_filter(array_map('intval', $scaleids))));
+        sort($scaleids);
+        return $scaleids;
+    }
+
+    /**
+     * Format a CAT test display name.
+     *
+     * @param \stdClass $test
+     * @return string
+     */
+    public static function get_test_display_name(\stdClass $test): string {
+        $parts = [];
+        $name = trim((string)($test->name ?? ''));
+        if ($name !== '') {
+            $parts[] = format_string($name);
+        } else if (!empty($test->adaptivequizname)) {
+            $parts[] = format_string((string)$test->adaptivequizname);
+        } else {
+            $parts[] = 'CAT test #' . (int)$test->id;
+        }
+
+        $parts[] = '#' . (int)$test->id;
+
+        $status = self::analyse_test_readiness($test);
+        $parts[] = '[' . get_string('readiness:' . $status, 'block_catquiz_feedbackwizard') . ']';
+
+        return implode(' ', $parts);
+    }
+
+    /**
+     * Analyse a rough readiness level from a CAT test record.
+     *
+     * @param \stdClass $test
+     * @return string
+     */
+    public static function analyse_test_readiness(\stdClass $test): string {
+        $jsondata = [];
+        if (!empty($test->json)) {
+            $decoded = json_decode((string)$test->json, true);
+            if (is_array($decoded)) {
+                $jsondata = $decoded;
+            }
+        }
+
+        $mainscaleid = (int)($jsondata['catquiz_catscales'] ?? $jsondata['catscaleid'] ?? $test->catscaleid ?? 0);
+        $hasfeedback = !empty($jsondata['numberoffeedbackoptionsselect']);
+        $hasquestions = !empty($jsondata['maxquestionsgroup']['catquiz_maxquestions'] ?? 0);
+
+        if ($mainscaleid < 1) {
+            return 'incomplete';
+        }
+        if ($hasquestions && $hasfeedback) {
+            return 'ready';
+        }
+        return 'warnings';
+    }
+
+    /**
      * Append recursive subscale records.
      *
      * @param int $parentid
@@ -257,27 +448,5 @@ class catquiz_data {
     protected static function format_subscale_label(\stdClass $record): string {
         $prefix = str_repeat('- ', max(0, ((int)($record->depth ?? 1)) - 1));
         return $prefix . format_string($record->name) . ' (' . (int)($record->itemcount ?? 0) . ')';
-    }
-
-    /**
-     * Return human readable label for a test record.
-     *
-     * @param \stdClass $record
-     * @return string
-     */
-    public static function get_test_display_name(\stdClass $record): string {
-        $parts = [];
-        $name = trim((string)($record->name ?? ''));
-        $adaptivequizname = trim((string)($record->adaptivequizname ?? ''));
-
-        if ($name !== '') {
-            $parts[] = $name;
-        }
-        if ($adaptivequizname !== '' && $adaptivequizname !== $name) {
-            $parts[] = $adaptivequizname;
-        }
-        $parts[] = '#' . (int)$record->id;
-
-        return implode(' – ', $parts);
     }
 }

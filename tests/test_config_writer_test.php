@@ -62,6 +62,16 @@ final class test_config_writer_test extends \advanced_testcase {
             'precisionmode' => 'high',
             'testgoal' => 'placement',
             'completionenabled' => 1,
+            'feedbackrangecount' => 2,
+            'reportingstrategy' => 'main_only',
+            'feedbacklabel_1' => 'Below target',
+            'feedbacklower_1' => -3.0,
+            'feedbackupper_1' => 0.0,
+            'feedbacktext_1' => 'Please keep practising.',
+            'feedbacklabel_2' => 'On track',
+            'feedbacklower_2' => 0.0,
+            'feedbackupper_2' => 3.0,
+            'feedbacktext_2' => 'You are doing well.',
         ];
 
         $mapped = test_config_writer::apply_wizard_state($jsondata, $wizardstate);
@@ -81,8 +91,15 @@ final class test_config_writer_test extends \advanced_testcase {
         $this->assertSame(0.2, $mapped['catquiz_standarderrorgroup']['catquiz_standarderror_min']);
         $this->assertSame(1, $mapped['completion']);
         $this->assertSame(1, $mapped['completionview']);
+        $this->assertSame(2, $mapped['numberoffeedbackoptionsselect']);
+        $this->assertSame(1, $mapped['catquiz_scalereportcheckbox_9']);
+        $this->assertSame(-3.0, $mapped['feedback_scaleid_limit_lower_9_1']);
+        $this->assertSame(0.0, $mapped['feedback_scaleid_limit_upper_9_1']);
+        $this->assertSame('Please keep practising.', $mapped['feedbackeditor_scaleid_9_1']['text']);
         $this->assertSame('placement', $mapped['catquiz_wizard']['scenario']);
         $this->assertSame('placement', $mapped['catquiz_wizard']['testgoal']);
+        $this->assertSame('main_only', $mapped['catquiz_wizard']['reportingstrategy']);
+        $this->assertCount(2, $mapped['catquiz_wizard']['feedbackranges']);
     }
 
     /**
@@ -108,6 +125,16 @@ final class test_config_writer_test extends \advanced_testcase {
             'wizardmode' => 'clone',
             'clonescope' => 'conditions',
             'mainscaleid' => 3,
+            'feedbackrangecount' => 2,
+            'reportingstrategy' => 'main_only',
+            'feedbacklabel_1' => 'A',
+            'feedbacklower_1' => -1.0,
+            'feedbackupper_1' => 0.0,
+            'feedbacktext_1' => 'One.',
+            'feedbacklabel_2' => 'B',
+            'feedbacklower_2' => 0.0,
+            'feedbackupper_2' => 1.0,
+            'feedbacktext_2' => 'Two.',
         ]);
 
         $this->assertSame('conditions', $mapped['catquiz_wizard']['clonescope']);
