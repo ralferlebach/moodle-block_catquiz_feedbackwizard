@@ -91,16 +91,18 @@ class test_config_normalizer {
         }
 
         if ($scope === 'conditions') {
-            foreach ([
-                'minquestioncount',
-                'questioncount',
-                'questioncountpersubscale',
-                'timelimitenabled',
-                'timelimitminutes',
-                'precisionmode',
-                'testgoal',
-                'completionenabled',
-            ] as $field) {
+            foreach (
+                [
+                    'minquestioncount',
+                    'questioncount',
+                    'questioncountpersubscale',
+                    'timelimitenabled',
+                    'timelimitminutes',
+                    'precisionmode',
+                    'testgoal',
+                    'completionenabled',
+                ] as $field
+            ) {
                 if (array_key_exists($field, $sourcedefaults)) {
                     $result[$field] = $sourcedefaults[$field];
                 }

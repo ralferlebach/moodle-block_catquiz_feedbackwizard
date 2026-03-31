@@ -496,7 +496,7 @@ class wizard extends dynamic_form {
                     $merged['selectedtest'] = $selectedtest;
                     $merged['testid'] = $selectedtest;
                 }
-            } elseif ($wizardmode === 'edit' && $selectedtest > 0) {
+            } else if ($wizardmode === 'edit' && $selectedtest > 0) {
                 $record = catquiz_data::get_test_by_id($selectedtest);
                 if ($record) {
                     $defaults = test_config_normalizer::build_wizard_defaults($record, 'edit');
@@ -504,7 +504,7 @@ class wizard extends dynamic_form {
                     $merged['selectedtest'] = $selectedtest;
                     $merged['testid'] = $selectedtest;
                 }
-            } elseif ($wizardmode === 'clone') {
+            } else if ($wizardmode === 'clone') {
                 $targetrecord = catquiz_data::get_test_by_id($selectedtest);
                 $sourcerecord = catquiz_data::get_test_by_id((int)($data->sourcetestid ?? 0));
                 if ($targetrecord && $sourcerecord) {
