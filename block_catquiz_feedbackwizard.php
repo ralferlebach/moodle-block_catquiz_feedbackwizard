@@ -15,99 +15,90 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * catquiz_feedbackwizard block class.
+ * Main Block File.
  *
- * @package    block_catquiz_feedbackwizard
- * @copyright  2025 Ralf Erlebach <ralf.erlebach@gmx.de>
- * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package     block_catquiz_feedbackwizard
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
+ * This block provides an user-friendly settings wizard for the local_catquiz plugin.
+ *
+ * @package     block_catquiz_feedbackwizard
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class block_catquiz_feedbackwizard extends block_base {
+
     /**
-     * Initialise the block.
+     * Sets the block title from language string.
+     *
+     * @return void
      */
     public function init(): void {
         $this->title = get_string('pluginname', 'block_catquiz_feedbackwizard');
     }
 
     /**
-     * This block has global config.
+     * Define where this block can be displayed.
      *
-     * @return bool
-     */
-    public function has_config(): bool {
-        return true;
-    }
-
-    /**
-     * Instance of block can be added to all pages.
+     * Returns an array of page formats where this block is applicable.
      *
-     * @return array
+     * @return array Array of applicable page formats
      */
     public function applicable_formats(): array {
         return [
-            'site-index' => true,
+            'site' => true,
             'course-view' => true,
-            'my' => false,
         ];
     }
 
     /**
-     * The block has no special configuration.
+     * Check if multiple instances of this block are allowed.
      *
-     * @return bool
-     */
-    public function instance_allow_config(): bool {
-        return false;
-    }
-
-    /**
-     * This block can be added multiple times.
-     *
-     * @return bool
+     * @return bool False - only one instance per page is allowed
      */
     public function instance_allow_multiple(): bool {
         return false;
     }
 
     /**
-     * Gets the content for this block.
+     * Creates the block content including capability checks and template rendering.
+     * Loads required JavaScript for modal functionality.
      *
-     * @return stdClass
+     * @return stdClass The block content object
      */
     public function get_content(): stdClass {
-        global $PAGE;
 
+        global $COURSE, $OUTPUT;
+
+        // Return cached content if already generated.
         if ($this->content !== null) {
             return $this->content;
         }
 
         $this->content = new stdClass();
-        $this->content->text = '';
-        $this->content->footer = '';
+        $context = context_course::instance($COURSE->id ?? SITEID);
 
-        if (!has_capability('block/catquiz_feedbackwizard:use', $this->context)) {
+        // Check user capability to use this block.
+        if (!has_capability('block/catquiz_feedbackwizard:use', $context)) {
+            $this->content->text = '';
             return $this->content;
         }
 
-        $PAGE->requires->js_call_amd(
-            'block_catquiz_feedbackwizard/main',
-            'init',
-            [[
-                'maxSteps' => \block_catquiz_feedbackwizard\form\wizard::MAXSTEPS,
-            ]]
-        );
-
-        $courseid = 0;
-        if (!empty($PAGE->course->id)) {
-            $courseid = (int)$PAGE->course->id;
-        }
-
-        $data = [
-            'courseid' => $courseid,
-            'buttontext' => get_string('openwizard', 'block_catquiz_feedbackwizard'),
+        // Prepare template data.
+        $data = (object)[
+            'buttonlabel' => get_string('openwizard', 'block_catquiz_feedbackwizard'),
+            'courseid' => (int)($COURSE->id ?? SITEID),
         ];
 
-        $this->content->text = $this->render_from_template('block_catquiz_feedbackwizard/block', $data);
+        // Render block content from template.
+        $this->content->text = $OUTPUT->render_from_template('block_catquiz_feedbackwizard/block', $data);
+
+        // Load our AMD to wire up the modal form.
+        $this->page->requires->js_call_amd('block_catquiz_feedbackwizard/main', 'init',
+            [['maxSteps' => \block_catquiz_feedbackwizard\form\wizard::MAXSTEPS]]);
 
         return $this->content;
     }
