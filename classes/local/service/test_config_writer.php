@@ -241,12 +241,14 @@ class test_config_writer {
         }
 
         foreach (array_keys($jsondata) as $key) {
-            if (preg_match(
-                '/^(catquiz_scalereportcheckbox_|feedback_scaleid_limit_lower_|'
-                . 'feedback_scaleid_limit_upper_|feedbackeditor_scaleid_)(\d+)(?:_\d+)?$/',
-                $key,
-                $matches
-            )) {
+            if (
+                preg_match(
+                    '/^(catquiz_scalereportcheckbox_|feedback_scaleid_limit_lower_|'
+                    . 'feedback_scaleid_limit_upper_|feedbackeditor_scaleid_)(\d+)(?:_\d+)?$/',
+                    $key,
+                    $matches
+                )
+            ) {
                 if (in_array((int)$matches[2], $scaleids, true)) {
                     unset($jsondata[$key]);
                 }
