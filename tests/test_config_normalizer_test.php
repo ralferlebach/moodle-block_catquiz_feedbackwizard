@@ -137,4 +137,40 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame('placement', test_config_normalizer::extract_test_goal($wizarddata));
         $this->assertSame(1, test_config_normalizer::extract_completion_enabled($jsondata, $wizarddata));
     }
+
+    /**
+     * Test merging clone defaults for different copy scopes.
+     *
+     * @covers ::merge_clone_defaults
+     * @return void
+     */
+    public function test_merge_clone_defaults(): void {
+        $target = [
+            'mainscaleid' => 2,
+            'subscaleids' => [21],
+            'questioncount' => 10,
+            'timelimitenabled' => 0,
+            'precisionmode' => 'low',
+            'testgoal' => '',
+        ];
+        $source = [
+            'mainscaleid' => 7,
+            'subscaleids' => [31, 32],
+            'questioncount' => 25,
+            'timelimitenabled' => 1,
+            'timelimitminutes' => 40,
+            'precisionmode' => 'high',
+            'testgoal' => 'placement',
+        ];
+
+        $structure = test_config_normalizer::merge_clone_defaults($target, $source, 'structure');
+        $conditions = test_config_normalizer::merge_clone_defaults($target, $source, 'conditions');
+
+        $this->assertSame(7, $structure['mainscaleid']);
+        $this->assertSame([31, 32], $structure['subscaleids']);
+        $this->assertSame(10, $structure['questioncount']);
+        $this->assertSame(2, $conditions['mainscaleid']);
+        $this->assertSame(25, $conditions['questioncount']);
+        $this->assertSame('placement', $conditions['testgoal']);
+    }
 }

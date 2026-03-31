@@ -51,6 +51,7 @@ class test_config_normalizer {
             'testid' => (int)$testrecord->id,
             'wizardmode' => $mode,
             'sourcetestid' => $sourcetestid,
+            'clonescope' => (string)($wizarddata['clonescope'] ?? 'full'),
             'scenario' => (string)($wizarddata['scenario'] ?? ''),
             'mainscaleid' => $mainscaleid,
             'subscaleids' => self::extract_subscale_ids($jsondata, $wizarddata),
@@ -63,6 +64,50 @@ class test_config_normalizer {
             'testgoal' => self::extract_test_goal($wizarddata),
             'completionenabled' => self::extract_completion_enabled($jsondata, $wizarddata),
         ];
+    }
+
+
+    /**
+     * Merge clone defaults into a target wizard state.
+     *
+     * @param array $targetdefaults
+     * @param array $sourcedefaults
+     * @param string $scope
+     * @return array
+     */
+    public static function merge_clone_defaults(array $targetdefaults, array $sourcedefaults, string $scope): array {
+        if ($scope === 'full') {
+            return array_merge($targetdefaults, $sourcedefaults);
+        }
+
+        $result = $targetdefaults;
+        if ($scope === 'structure') {
+            foreach (['mainscaleid', 'subscaleids'] as $field) {
+                if (array_key_exists($field, $sourcedefaults)) {
+                    $result[$field] = $sourcedefaults[$field];
+                }
+            }
+            return $result;
+        }
+
+        if ($scope === 'conditions') {
+            foreach ([
+                'minquestioncount',
+                'questioncount',
+                'questioncountpersubscale',
+                'timelimitenabled',
+                'timelimitminutes',
+                'precisionmode',
+                'testgoal',
+                'completionenabled',
+            ] as $field) {
+                if (array_key_exists($field, $sourcedefaults)) {
+                    $result[$field] = $sourcedefaults[$field];
+                }
+            }
+        }
+
+        return $result;
     }
 
     /**

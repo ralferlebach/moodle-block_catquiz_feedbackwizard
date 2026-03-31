@@ -25,6 +25,7 @@
 namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
+use block_catquiz_feedbackwizard\local\service\scenario_preset_service;
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
 use block_catquiz_feedbackwizard\local\service\test_config_writer;
 use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
@@ -224,6 +225,19 @@ class wizard extends dynamic_form {
 
         $mform->addElement(
             'select',
+            'clonescope',
+            get_string('field:clonescope', 'block_catquiz_feedbackwizard'),
+            [
+                'full' => get_string('clonescope:full', 'block_catquiz_feedbackwizard'),
+                'structure' => get_string('clonescope:structure', 'block_catquiz_feedbackwizard'),
+                'conditions' => get_string('clonescope:conditions', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('clonescope', PARAM_ALPHA);
+        $mform->disabledIf('clonescope', 'wizardmode', 'neq', 'clone');
+
+        $mform->addElement(
+            'select',
             'scenario',
             get_string('field:scenario', 'block_catquiz_feedbackwizard'),
             [
@@ -388,6 +402,13 @@ class wizard extends dynamic_form {
             if (($data['wizardmode'] ?? '') === 'clone' && empty($data['sourcetestid'])) {
                 $errors['sourcetestid'] = get_string('required');
             }
+            if (
+                ($data['wizardmode'] ?? '') === 'clone'
+                && !empty($data['sourcetestid'])
+                && (int)$data['sourcetestid'] === (int)($data['selectedtest'] ?? 0)
+            ) {
+                $errors['sourcetestid'] = get_string('error:sameclonesource', 'block_catquiz_feedbackwizard');
+            }
             if (($data['wizardmode'] ?? '') === 'scenario' && empty($data['scenario'])) {
                 $errors['scenario'] = get_string('required');
             }
@@ -467,18 +488,35 @@ class wizard extends dynamic_form {
 
         if ($step === 2) {
             $wizardmode = (string)($data->wizardmode ?? 'edit');
-            $recordid = $wizardmode === 'clone' ? (int)($data->sourcetestid ?? 0) : $selectedtest;
-            if ($recordid > 0 && in_array($wizardmode, ['edit', 'clone'], true)) {
-                $record = catquiz_data::get_test_by_id($recordid);
-                if ($record) {
-                    $sourceid = $wizardmode === 'clone' ? $recordid : 0;
-                    $defaults = test_config_normalizer::build_wizard_defaults($record, $wizardmode, $sourceid);
+            if ($wizardmode === 'scenario') {
+                $scenario = (string)($data->scenario ?? '');
+                if ($scenario !== '') {
+                    $defaults = scenario_preset_service::get_preset($scenario);
                     $merged = array_merge($defaults, $merged);
                     $merged['selectedtest'] = $selectedtest;
                     $merged['testid'] = $selectedtest;
-                    if ($wizardmode === 'clone') {
-                        $merged['sourcetestid'] = $recordid;
-                    }
+                }
+            } elseif ($wizardmode === 'edit' && $selectedtest > 0) {
+                $record = catquiz_data::get_test_by_id($selectedtest);
+                if ($record) {
+                    $defaults = test_config_normalizer::build_wizard_defaults($record, 'edit');
+                    $merged = array_merge($defaults, $merged);
+                    $merged['selectedtest'] = $selectedtest;
+                    $merged['testid'] = $selectedtest;
+                }
+            } elseif ($wizardmode === 'clone') {
+                $targetrecord = catquiz_data::get_test_by_id($selectedtest);
+                $sourcerecord = catquiz_data::get_test_by_id((int)($data->sourcetestid ?? 0));
+                if ($targetrecord && $sourcerecord) {
+                    $targetdefaults = test_config_normalizer::build_wizard_defaults($targetrecord, 'clone', (int)$sourcerecord->id);
+                    $sourcedefaults = test_config_normalizer::build_wizard_defaults($sourcerecord, 'clone', (int)$sourcerecord->id);
+                    $clonescope = (string)($data->clonescope ?? 'full');
+                    $defaults = test_config_normalizer::merge_clone_defaults($targetdefaults, $sourcedefaults, $clonescope);
+                    $merged = array_merge($defaults, $merged);
+                    $merged['selectedtest'] = $selectedtest;
+                    $merged['testid'] = $selectedtest;
+                    $merged['sourcetestid'] = (int)$sourcerecord->id;
+                    $merged['clonescope'] = $clonescope;
                 }
             }
         }
@@ -540,6 +578,10 @@ class wizard extends dynamic_form {
         $summary[] = get_string('field:selectedtest', 'block_catquiz_feedbackwizard') . ': #' . (int)($data['selectedtest'] ?? 0);
         $summary[] = get_string('field:wizardmode', 'block_catquiz_feedbackwizard') . ': ' .
             s((string)($data['wizardmode'] ?? 'edit'));
+        if (($data['wizardmode'] ?? '') === 'clone') {
+            $summary[] = get_string('field:clonescope', 'block_catquiz_feedbackwizard') . ': ' .
+                s((string)($data['clonescope'] ?? 'full'));
+        }
         $summary[] = get_string('field:mainscaleid', 'block_catquiz_feedbackwizard') . ': ' . (int)($data['mainscaleid'] ?? 0);
         $summary[] = get_string('field:subscaleids', 'block_catquiz_feedbackwizard') . ': ' .
             count((array)($data['subscaleids'] ?? []));
@@ -556,10 +598,28 @@ class wizard extends dynamic_form {
         foreach ($this->build_review_warnings($data) as $warning) {
             $summary[] = get_string('field:reviewwarning', 'block_catquiz_feedbackwizard') . ': ' . s($warning);
         }
+        $summary[] = get_string('field:readiness', 'block_catquiz_feedbackwizard') . ': ' .
+            s($this->calculate_readiness_label($data));
 
         return html_writer::alist($summary);
     }
 
+    /**
+     * Calculate a simple readiness label for the review step.
+     *
+     * @param array $data
+     * @return string
+     */
+    protected function calculate_readiness_label(array $data): string {
+        $warnings = $this->build_review_warnings($data);
+        if (empty($data['mainscaleid']) || empty($data['questioncount'])) {
+            return get_string('readiness:incomplete', 'block_catquiz_feedbackwizard');
+        }
+        if (!empty($warnings)) {
+            return get_string('readiness:warnings', 'block_catquiz_feedbackwizard');
+        }
+        return get_string('readiness:ready', 'block_catquiz_feedbackwizard');
+    }
 
     /**
      * Build review warnings for the current wizard state.

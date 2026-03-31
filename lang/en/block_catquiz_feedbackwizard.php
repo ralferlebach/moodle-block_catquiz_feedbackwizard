@@ -22,18 +22,25 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+
 $string['capability:use'] = 'Use multistage CAT wizard';
 $string['catquiz_feedbackwizard:addinstance'] = 'Add a new CATQuiz wizard block';
 $string['catquiz_feedbackwizard:use'] = 'Use the CATQuiz wizard';
+$string['clonescope:conditions'] = 'Reuse only conditions and limits';
+$string['clonescope:full'] = 'Reuse the full configuration';
+$string['clonescope:structure'] = 'Reuse only scales and subscales';
 $string['error:invalidstep'] = 'Invalid wizard step.';
 $string['error:minlargerthanmax'] = 'The minimum question count cannot be greater than the maximum question count.';
 $string['error:permissiondenied'] = 'You do not have permission to use this wizard.';
+$string['error:sameclonesource'] = 'The source test must be different from the selected target test.';
+$string['field:clonescope'] = 'Copy scope';
 $string['field:completionenabled'] = 'Enable activity completion';
 $string['field:mainscaleid'] = 'Main scale';
 $string['field:minquestioncount'] = 'Minimum question count';
 $string['field:precisionmode'] = 'Precision';
 $string['field:questioncount'] = 'Maximum question count';
 $string['field:questioncountpersubscale'] = 'Maximum question count per subscale';
+$string['field:readiness'] = 'Readiness';
 $string['field:reviewsummary'] = 'Review';
 $string['field:reviewwarning'] = 'Warning';
 $string['field:scenario'] = 'Scenario';
@@ -66,6 +73,9 @@ $string['privacy:metadata:block_catquiz_feedbackwizard:courseid'] = 'The course 
 $string['privacy:metadata:block_catquiz_feedbackwizard:datajson'] = 'The partial wizard data stored as JSON.';
 $string['privacy:metadata:block_catquiz_feedbackwizard:testid'] = 'The selected CAT test ID.';
 $string['privacy:metadata:block_catquiz_feedbackwizard:userid'] = 'The user ID who created the draft or submission.';
+$string['readiness:incomplete'] = 'Incomplete';
+$string['readiness:ready'] = 'Ready to save';
+$string['readiness:warnings'] = 'Ready with warnings';
 $string['savedprogress'] = 'Progress saved.';
 $string['scenario:checkup'] = 'Learning progress test, fully adaptive';
 $string['scenario:final'] = 'Final test across all topics, partially adaptive';

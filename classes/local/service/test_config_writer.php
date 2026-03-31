@@ -51,7 +51,11 @@ class test_config_writer {
         }
 
         $basejson = test_config_normalizer::decode_json((string)($record->json ?? ''));
-        if (($wizardstate['wizardmode'] ?? '') === 'clone' && !empty($wizardstate['sourcetestid'])) {
+        if (
+            ($wizardstate['wizardmode'] ?? '') === 'clone'
+            && ($wizardstate['clonescope'] ?? 'full') === 'full'
+            && !empty($wizardstate['sourcetestid'])
+        ) {
             $source = catquiz_data::get_test_by_id((int)$wizardstate['sourcetestid']);
             if ($source) {
                 $basejson = test_config_normalizer::decode_json((string)($source->json ?? ''));
@@ -146,6 +150,7 @@ class test_config_writer {
             'testgoal' => $testgoal,
             'completionenabled' => $completionenabled ? 1 : 0,
             'sourcetestid' => (int)($wizardstate['sourcetestid'] ?? 0),
+            'clonescope' => (string)($wizardstate['clonescope'] ?? 'full'),
         ];
 
         return $jsondata;

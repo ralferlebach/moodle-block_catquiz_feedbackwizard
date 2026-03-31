@@ -85,7 +85,6 @@ final class test_config_writer_test extends \advanced_testcase {
         $this->assertSame('placement', $mapped['catquiz_wizard']['testgoal']);
     }
 
-
     /**
      * Test mapping simple precision modes to standard error ranges.
      *
@@ -98,4 +97,19 @@ final class test_config_writer_test extends \advanced_testcase {
         $this->assertSame([0.2, 1.0], test_config_writer::map_precision_mode('high'));
     }
 
+    /**
+     * Test preserving the clone scope in wizard-owned JSON.
+     *
+     * @covers ::apply_wizard_state
+     * @return void
+     */
+    public function test_apply_wizard_state_preserves_clone_scope(): void {
+        $mapped = test_config_writer::apply_wizard_state([], [
+            'wizardmode' => 'clone',
+            'clonescope' => 'conditions',
+            'mainscaleid' => 3,
+        ]);
+
+        $this->assertSame('conditions', $mapped['catquiz_wizard']['clonescope']);
+    }
 }
