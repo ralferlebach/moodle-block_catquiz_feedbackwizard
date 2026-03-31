@@ -15,14 +15,13 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Language strings for block_catquiz_feedbackwizard.
+ * Language File for block_catquiz_feedbackwizard (English).
  *
  * @package     block_catquiz_feedbackwizard
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-$string['capability:use'] = 'Use the CATQuiz feedback wizard';
+$string['capability:use'] = 'Use multistage form wizard';
 $string['catquiz_feedbackwizard:addinstance'] = 'Add a new CATQuiz feedback wizard block';
 $string['catquiz_feedbackwizard:use'] = 'Use the CATQuiz feedback wizard';
 $string['error:invalidstep'] = 'Invalid wizard step.';
@@ -44,7 +43,7 @@ $string['step03:title'] = 'Decide competency';
 $string['step04:title'] = 'Select sub-competencies';
 $string['step05:title'] = 'Design feedback mechanisms';
 $string['step06:title'] = 'Revise & Confirm';
+$string['submissionsuccess'] = 'Your submission has been recorded.';
 $string['submitfinal'] = 'Submit';
 $string['submitnext'] = 'Continue';
 $string['submitprevious'] = 'Back';
-$string['submissionsuccess'] = 'Your submission has been recorded.';

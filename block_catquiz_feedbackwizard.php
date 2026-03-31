@@ -30,7 +30,6 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class block_catquiz_feedbackwizard extends block_base {
-
     /**
      * Sets the block title from language string.
      *
@@ -97,8 +96,11 @@ class block_catquiz_feedbackwizard extends block_base {
         $this->content->text = $OUTPUT->render_from_template('block_catquiz_feedbackwizard/block', $data);
 
         // Load our AMD to wire up the modal form.
-        $this->page->requires->js_call_amd('block_catquiz_feedbackwizard/main', 'init',
-            [['maxSteps' => \block_catquiz_feedbackwizard\form\wizard::MAXSTEPS]]);
+        $this->page->requires->js_call_amd(
+            'block_catquiz_feedbackwizard/main',
+            'init',
+            [['maxSteps' => \block_catquiz_feedbackwizard\form\wizard::MAXSTEPS]]
+        );
 
         return $this->content;
     }
