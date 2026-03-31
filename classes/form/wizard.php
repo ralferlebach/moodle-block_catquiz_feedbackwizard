@@ -25,6 +25,7 @@
 namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
+use block_catquiz_feedbackwizard\local\service\scenario_preset_service;
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
 use block_catquiz_feedbackwizard\local\service\test_config_writer;
 use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
@@ -412,8 +413,10 @@ class wizard extends dynamic_form {
             if (!empty($data['timelimitminutes']) && (int)$data['timelimitminutes'] < 1) {
                 $errors['timelimitminutes'] = get_string('err_positive', 'form');
             }
-            if (!empty($data['minquestioncount']) && !empty($data['questioncount']) &&
-                (int)$data['minquestioncount'] > (int)$data['questioncount']) {
+            if (
+                !empty($data['minquestioncount']) && !empty($data['questioncount']) &&
+                (int)$data['minquestioncount'] > (int)$data['questioncount']
+            ) {
                 $errors['questioncount'] = get_string('error:minlargerthanmax', 'block_catquiz_feedbackwizard');
             }
         }
@@ -478,6 +481,15 @@ class wizard extends dynamic_form {
                     }
                 }
             }
+
+            if ($wizardmode === 'scenario' && !empty($data->scenario)) {
+                $merged = array_merge(
+                    scenario_preset_service::get_preset((string)$data->scenario),
+                    $merged
+                );
+                $merged['selectedtest'] = $selectedtest;
+                $merged['testid'] = $selectedtest;
+            }
         }
 
         $draft->set('testid', $selectedtest);
@@ -537,6 +549,8 @@ class wizard extends dynamic_form {
         $summary[] = get_string('field:selectedtest', 'block_catquiz_feedbackwizard') . ': #' . (int)($data['selectedtest'] ?? 0);
         $summary[] = get_string('field:wizardmode', 'block_catquiz_feedbackwizard') . ': ' .
             s((string)($data['wizardmode'] ?? 'edit'));
+        $summary[] = get_string('field:scenario', 'block_catquiz_feedbackwizard') . ': ' .
+            s((string)($data['scenario'] ?? ''));
         $summary[] = get_string('field:mainscaleid', 'block_catquiz_feedbackwizard') . ': ' . (int)($data['mainscaleid'] ?? 0);
         $summary[] = get_string('field:subscaleids', 'block_catquiz_feedbackwizard') . ': ' .
             count((array)($data['subscaleids'] ?? []));

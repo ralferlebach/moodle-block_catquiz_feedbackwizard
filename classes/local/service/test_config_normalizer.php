@@ -240,6 +240,25 @@ class test_config_normalizer {
      * @param array $wizarddata
      * @return string
      */
+    public static function extract_precision_mode(array $jsondata, array $wizarddata = []): string {
+        if (!empty($wizarddata['precisionmode'])) {
+            return (string)$wizarddata['precisionmode'];
+        }
+
+        $minimum = $jsondata['catquiz_standarderrorgroup']['catquiz_standarderror_min'] ?? null;
+        if ($minimum === null || $minimum === '') {
+            return 'medium';
+        }
+
+        $minimum = (float)$minimum;
+        if ($minimum <= 0.25) {
+            return 'high';
+        }
+        if ($minimum <= 0.5) {
+            return 'medium';
+        }
+        return 'low';
+    }
 
     /**
      * Extract the configured test goal from wizard state.
@@ -265,23 +284,4 @@ class test_config_normalizer {
         return !empty($jsondata['completion']) ? 1 : 0;
     }
 
-    public static function extract_precision_mode(array $jsondata, array $wizarddata = []): string {
-        if (!empty($wizarddata['precisionmode'])) {
-            return (string)$wizarddata['precisionmode'];
-        }
-
-        $minimum = $jsondata['catquiz_standarderrorgroup']['catquiz_standarderror_min'] ?? null;
-        if ($minimum === null || $minimum === '') {
-            return 'medium';
-        }
-
-        $minimum = (float)$minimum;
-        if ($minimum <= 0.25) {
-            return 'high';
-        }
-        if ($minimum <= 0.5) {
-            return 'medium';
-        }
-        return 'low';
-    }
 }

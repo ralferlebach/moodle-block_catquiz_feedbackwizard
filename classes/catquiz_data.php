@@ -189,8 +189,12 @@ class catquiz_data {
             return [];
         }
 
-        $allrecords = $DB->get_records('local_catquiz_catscales', null, 'parentid ASC, name ASC, id ASC',
-            'id, parentid, name');
+        $allrecords = $DB->get_records(
+            'local_catquiz_catscales',
+            null,
+            'parentid ASC, name ASC, id ASC',
+            'id, parentid, name'
+        );
         if (empty($allrecords)) {
             return [];
         }
