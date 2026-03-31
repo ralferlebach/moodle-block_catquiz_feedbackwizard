@@ -136,6 +136,16 @@ class test_config_writer {
         $jsondata['completionview'] = $completionenabled ? 1 : 0;
 
         $feedbackconfig = self::apply_feedback_state($jsondata, $wizardstate, $mainscaleid);
+        $matchingconfig = matching_config_service::normalise_matching([
+            'mode' => (string)($wizardstate['matchingmode'] ?? 'none'),
+            'categoryid' => (int)($wizardstate['matchingcategoryid'] ?? 0),
+            'coursefield' => (string)($wizardstate['matchingcoursefield'] ?? 'shortname'),
+            'operator' => (string)($wizardstate['matchingoperator'] ?? 'contains'),
+            'pattern' => (string)($wizardstate['matchingpattern'] ?? ''),
+            'targettype' => (string)($wizardstate['matchingtargettype'] ?? 'catscale'),
+            'targetvalue' => (string)($wizardstate['matchingtargetvalue'] ?? ''),
+            'csv' => (string)($wizardstate['matchingcsv'] ?? ''),
+        ]);
 
         $jsondata['catquiz_wizard'] = [
             'wizardmode' => (string)($wizardstate['wizardmode'] ?? 'edit'),
@@ -155,7 +165,7 @@ class test_config_writer {
             'reportingstrategy' => $feedbackconfig['reportingstrategy'],
             'feedbackrangecount' => $feedbackconfig['feedbackrangecount'],
             'feedbackranges' => $feedbackconfig['feedbackranges'],
-            'matching' => self::build_matching_state($wizardstate),
+            'matching' => $matchingconfig,
         ];
 
         return $jsondata;
@@ -199,11 +209,6 @@ class test_config_writer {
             $range['min'],
             $range['max']
         );
-        foreach ($feedbackranges as $index => $feedbackrange) {
-            $feedbackranges[$index]['templateformat'] = feedback_template_service::normalise_template_format(
-                (string)($feedbackrange['templateformat'] ?? 'mustache')
-            );
-        }
         $reportscaleids = catquiz_data::get_reporting_scale_ids($mainscaleid, $subscaleids, $reportingstrategy);
         if (empty($reportscaleids) && $mainscaleid > 0) {
             $reportscaleids = [$mainscaleid];
@@ -241,27 +246,6 @@ class test_config_writer {
      * @param array $scaleids
      * @return void
      */
-
-
-    /**
-     * Build matching configuration for wizard-owned JSON.
-     *
-     * @param array $wizardstate
-     * @return array
-     */
-    protected static function build_matching_state(array $wizardstate): array {
-        return [
-            'mode' => (string)($wizardstate['matchingmode'] ?? 'none'),
-            'categoryid' => (int)($wizardstate['matchingcategoryid'] ?? 0),
-            'coursefield' => (string)($wizardstate['matchingcoursefield'] ?? 'shortname'),
-            'operator' => (string)($wizardstate['matchingoperator'] ?? 'contains'),
-            'pattern' => (string)($wizardstate['matchingpattern'] ?? ''),
-            'targettype' => (string)($wizardstate['matchingtargettype'] ?? 'catscale'),
-            'targetvalue' => (string)($wizardstate['matchingtargetvalue'] ?? ''),
-            'csvdefinition' => (string)($wizardstate['matchingcsvdefinition'] ?? ''),
-        ];
-    }
-
     protected static function clear_feedback_keys(array &$jsondata, array $scaleids): void {
         if (empty($scaleids)) {
             return;

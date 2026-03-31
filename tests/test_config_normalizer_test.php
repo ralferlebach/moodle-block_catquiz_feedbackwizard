@@ -91,6 +91,16 @@ final class test_config_normalizer_test extends \advanced_testcase {
                 'feedbackeditor_scaleid_8_2' => ['text' => 'Doing well'],
                 'catquiz_scalereportcheckbox_8' => 1,
                 'catquiz_wizard' => [
+                    'matching' => [
+                        'mode' => 'rule',
+                        'categoryid' => 12,
+                        'coursefield' => 'shortname',
+                        'operator' => 'contains',
+                        'pattern' => 'MATH',
+                        'targettype' => 'catscale',
+                        'targetvalue' => '17',
+                        'csv' => '',
+                    ],
                     'feedbackranges' => [
                         [
                             'label' => 'Support',
@@ -142,7 +152,12 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame('COURSE-A', $defaults['feedbackactioncoursetarget_1']);
         $this->assertSame(1, $defaults['feedbackactiongroupenabled_1']);
         $this->assertSame('GROUP-A', $defaults['feedbackactiongrouptarget_1']);
-        $this->assertSame('none', $defaults['matchingmode']);
+        $this->assertSame('rule', $defaults['matchingmode']);
+        $this->assertSame(12, $defaults['matchingcategoryid']);
+        $this->assertSame('contains', $defaults['matchingoperator']);
+        $this->assertSame('MATH', $defaults['matchingpattern']);
+        $this->assertSame('catscale', $defaults['matchingtargettype']);
+        $this->assertSame('17', $defaults['matchingtargetvalue']);
     }
 
     /**

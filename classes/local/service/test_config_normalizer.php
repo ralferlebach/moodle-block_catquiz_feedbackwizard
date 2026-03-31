@@ -76,7 +76,7 @@ class test_config_normalizer {
         return array_merge(
             $defaults,
             self::build_feedback_defaults($jsondata, $wizarddata, $mainscaleid, $subscaleids),
-            self::extract_matching_defaults($wizarddata)
+            self::build_matching_defaults($wizarddata)
         );
     }
 
@@ -394,6 +394,41 @@ class test_config_normalizer {
         return array_merge($defaults, self::flatten_feedback_ranges($ranges));
     }
 
+
+    /**
+     * Build matching defaults from existing wizard-owned data.
+     *
+     * @param array $wizarddata
+     * @return array
+     */
+    public static function build_matching_defaults(array $wizarddata): array {
+        $matching = matching_config_service::normalise_matching((array)($wizarddata['matching'] ?? []));
+
+        if (empty($wizarddata['matching']) && !empty($wizarddata['matchingmode'])) {
+            $matching = matching_config_service::normalise_matching([
+                'mode' => (string)($wizarddata['matchingmode'] ?? 'none'),
+                'categoryid' => (int)($wizarddata['matchingcategoryid'] ?? 0),
+                'coursefield' => (string)($wizarddata['matchingcoursefield'] ?? 'shortname'),
+                'operator' => (string)($wizarddata['matchingoperator'] ?? 'contains'),
+                'pattern' => (string)($wizarddata['matchingpattern'] ?? ''),
+                'targettype' => (string)($wizarddata['matchingtargettype'] ?? 'catscale'),
+                'targetvalue' => (string)($wizarddata['matchingtargetvalue'] ?? ''),
+                'csv' => (string)($wizarddata['matchingcsv'] ?? ''),
+            ]);
+        }
+
+        return [
+            'matchingmode' => $matching['mode'],
+            'matchingcategoryid' => $matching['categoryid'],
+            'matchingcoursefield' => $matching['coursefield'],
+            'matchingoperator' => $matching['operator'],
+            'matchingpattern' => $matching['pattern'],
+            'matchingtargettype' => $matching['targettype'],
+            'matchingtargetvalue' => $matching['targetvalue'],
+            'matchingcsv' => $matching['csv'],
+        ];
+    }
+
     /**
      * Normalise the configured feedback range count.
      *
@@ -430,9 +465,7 @@ class test_config_normalizer {
                     'lower' => (isset($range['lower']) && $range['lower'] !== '') ? (float)$range['lower'] : null,
                     'upper' => (isset($range['upper']) && $range['upper'] !== '') ? (float)$range['upper'] : null,
                     'text' => (string)($range['text'] ?? ''),
-                    'templateformat' => feedback_template_service::normalise_template_format(
-                        (string)($range['templateformat'] ?? 'mustache')
-                    ),
+                    'templateformat' => (string)($range['templateformat'] ?? 'mustache'),
                     'actioncourseenabled' => !empty($range['actioncourseenabled']) ? 1 : 0,
                     'actioncoursetarget' => (string)($range['actioncoursetarget'] ?? ''),
                     'actiongroupenabled' => !empty($range['actiongroupenabled']) ? 1 : 0,
@@ -451,9 +484,7 @@ class test_config_normalizer {
                 'lower' => isset($state['feedbacklower_' . $index]) ? (float)$state['feedbacklower_' . $index] : null,
                 'upper' => isset($state['feedbackupper_' . $index]) ? (float)$state['feedbackupper_' . $index] : null,
                 'text' => (string)($state['feedbacktext_' . $index] ?? ''),
-                'templateformat' => feedback_template_service::normalise_template_format(
-                    (string)($state['feedbacktemplateformat_' . $index] ?? 'mustache')
-                ),
+                'templateformat' => (string)($state['feedbacktemplateformat_' . $index] ?? 'mustache'),
                 'actioncourseenabled' => !empty($state['feedbackactioncourseenabled_' . $index]) ? 1 : 0,
                 'actioncoursetarget' => (string)($state['feedbackactioncoursetarget_' . $index] ?? ''),
                 'actiongroupenabled' => !empty($state['feedbackactiongroupenabled_' . $index]) ? 1 : 0,
@@ -554,7 +585,7 @@ class test_config_normalizer {
                     ? (float)$jsondata['feedback_scaleid_limit_upper_' . $mainscaleid . '_' . $index]
                     : null,
                 'text' => self::extract_feedback_text($jsondata, $mainscaleid, $index),
-                'templateformat' => feedback_template_service::normalise_template_format('mustache'),
+                'templateformat' => 'mustache',
                 'actioncourseenabled' => 0,
                 'actioncoursetarget' => '',
                 'actiongroupenabled' => 0,
@@ -617,7 +648,7 @@ class test_config_normalizer {
                 'lower' => round($lower, 2),
                 'upper' => round($upper, 2),
                 'text' => 'Feedback for {{result.ranklabel}} in {{result.scalename}}.',
-                'templateformat' => feedback_template_service::normalise_template_format('mustache'),
+                'templateformat' => 'mustache',
                 'actioncourseenabled' => 0,
                 'actioncoursetarget' => '',
                 'actiongroupenabled' => 0,
@@ -682,51 +713,6 @@ class test_config_normalizer {
      * @param int $rangeindex
      * @return string
      */
-
-
-    /**
-     * Extract matching defaults from wizard-owned JSON.
-     *
-     * @param array $wizarddata
-     * @return array
-     */
-    public static function extract_matching_defaults(array $wizarddata): array {
-        $matching = self::extract_matching_block($wizarddata);
-        return [
-            'matchingmode' => (string)($matching['mode'] ?? 'none'),
-            'matchingcategoryid' => (int)($matching['categoryid'] ?? 0),
-            'matchingcoursefield' => (string)($matching['coursefield'] ?? 'shortname'),
-            'matchingoperator' => (string)($matching['operator'] ?? 'contains'),
-            'matchingpattern' => (string)($matching['pattern'] ?? ''),
-            'matchingtargettype' => (string)($matching['targettype'] ?? 'catscale'),
-            'matchingtargetvalue' => (string)($matching['targetvalue'] ?? ''),
-            'matchingcsvdefinition' => (string)($matching['csvdefinition'] ?? ''),
-        ];
-    }
-
-    /**
-     * Extract the nested matching block or fall back to flat fields.
-     *
-     * @param array $wizarddata
-     * @return array
-     */
-    protected static function extract_matching_block(array $wizarddata): array {
-        if (!empty($wizarddata['matching']) && is_array($wizarddata['matching'])) {
-            return $wizarddata['matching'];
-        }
-
-        return [
-            'mode' => (string)($wizarddata['matchingmode'] ?? 'none'),
-            'categoryid' => (int)($wizarddata['matchingcategoryid'] ?? 0),
-            'coursefield' => (string)($wizarddata['matchingcoursefield'] ?? 'shortname'),
-            'operator' => (string)($wizarddata['matchingoperator'] ?? 'contains'),
-            'pattern' => (string)($wizarddata['matchingpattern'] ?? ''),
-            'targettype' => (string)($wizarddata['matchingtargettype'] ?? 'catscale'),
-            'targetvalue' => (string)($wizarddata['matchingtargetvalue'] ?? ''),
-            'csvdefinition' => (string)($wizarddata['matchingcsvdefinition'] ?? ''),
-        ];
-    }
-
     protected static function extract_feedback_text(array $jsondata, int $scaleid, int $rangeindex): string {
         $value = $jsondata['feedbackeditor_scaleid_' . $scaleid . '_' . $rangeindex] ?? '';
         if (is_array($value)) {

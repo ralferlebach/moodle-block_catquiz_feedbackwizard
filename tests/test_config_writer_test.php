@@ -82,13 +82,14 @@ final class test_config_writer_test extends \advanced_testcase {
             'feedbackactioncoursetarget_2' => '',
             'feedbackactiongroupenabled_2' => 0,
             'feedbackactiongrouptarget_2' => '',
-            'matchingmode' => 'rules',
-            'matchingcategoryid' => 5,
+            'matchingmode' => 'rule',
+            'matchingcategoryid' => 8,
             'matchingcoursefield' => 'shortname',
             'matchingoperator' => 'contains',
-            'matchingpattern' => 'MATH',
+            'matchingpattern' => 'A1',
             'matchingtargettype' => 'course',
-            'matchingtargetvalue' => 'COURSE-201',
+            'matchingtargetvalue' => 'COURSE-101',
+            'matchingcsv' => '',
         ];
 
         $mapped = test_config_writer::apply_wizard_state($jsondata, $wizardstate);
@@ -123,9 +124,10 @@ final class test_config_writer_test extends \advanced_testcase {
         $this->assertSame(1, $mapped['catquiz_wizard']['feedbackranges'][0]['actiongroupenabled']);
         $this->assertSame('GROUP-A', $mapped['catquiz_wizard']['feedbackranges'][0]['actiongrouptarget']);
         $this->assertSame('plain', $mapped['catquiz_wizard']['feedbackranges'][1]['templateformat']);
-        $this->assertSame('rules', $mapped['catquiz_wizard']['matching']['mode']);
-        $this->assertSame(5, $mapped['catquiz_wizard']['matching']['categoryid']);
-        $this->assertSame('COURSE-201', $mapped['catquiz_wizard']['matching']['targetvalue']);
+        $this->assertSame('rule', $mapped['catquiz_wizard']['matching']['mode']);
+        $this->assertSame(8, $mapped['catquiz_wizard']['matching']['categoryid']);
+        $this->assertSame('contains', $mapped['catquiz_wizard']['matching']['operator']);
+        $this->assertSame('COURSE-101', $mapped['catquiz_wizard']['matching']['targetvalue']);
     }
 
     /**

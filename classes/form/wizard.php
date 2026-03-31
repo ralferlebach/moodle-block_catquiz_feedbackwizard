@@ -25,7 +25,7 @@
 namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
-use block_catquiz_feedbackwizard\local\service\feedback_template_service;
+use block_catquiz_feedbackwizard\local\service\matching_config_service;
 use block_catquiz_feedbackwizard\local\service\scenario_preset_service;
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
 use block_catquiz_feedbackwizard\local\service\test_config_writer;
@@ -414,8 +414,7 @@ class wizard extends dynamic_form {
             'static',
             'feedbacktokeninfo',
             '',
-            get_string('message:feedbacktokeninfo', 'block_catquiz_feedbackwizard',
-                feedback_template_service::build_token_help_text())
+            get_string('message:feedbacktokeninfo', 'block_catquiz_feedbackwizard')
         );
 
         $rangecount = (int)$feedbackdefaults['feedbackrangecount'];
@@ -531,111 +530,6 @@ class wizard extends dynamic_form {
         }
     }
 
-
-
-    /**
-     * Add the matching step.
-     *
-     * @param \MoodleQuickForm $mform
-     * @return void
-     */
-    protected function add_matching_step(\MoodleQuickForm $mform): void {
-        $mform->addElement('header', 'step6header', get_string('step06:title', 'block_catquiz_feedbackwizard'));
-        $mform->addElement('static', 'step6description', '', get_string('step06:description', 'block_catquiz_feedbackwizard'));
-
-        $state = $this->load_draft_state();
-        $categories = [0 => get_string('none')];
-        foreach (\core_course_category::make_categories_list() as $categoryid => $label) {
-            $categories[(int)$categoryid] = $label;
-        }
-
-        $mform->addElement(
-            'select',
-            'matchingmode',
-            get_string('field:matchingmode', 'block_catquiz_feedbackwizard'),
-            [
-                'none' => get_string('matchingmode:none', 'block_catquiz_feedbackwizard'),
-                'rules' => get_string('matchingmode:rules', 'block_catquiz_feedbackwizard'),
-                'csv' => get_string('matchingmode:csv', 'block_catquiz_feedbackwizard'),
-            ]
-        );
-        $mform->setType('matchingmode', PARAM_ALPHA);
-        $mform->setDefault('matchingmode', $state['matchingmode'] ?? 'none');
-
-        $mform->addElement(
-            'select',
-            'matchingcategoryid',
-            get_string('field:matchingcategoryid', 'block_catquiz_feedbackwizard'),
-            $categories
-        );
-        $mform->setType('matchingcategoryid', PARAM_INT);
-        $mform->setDefault('matchingcategoryid', (int)($state['matchingcategoryid'] ?? 0));
-        $mform->disabledIf('matchingcategoryid', 'matchingmode', 'neq', 'rules');
-
-        $mform->addElement(
-            'select',
-            'matchingcoursefield',
-            get_string('field:matchingcoursefield', 'block_catquiz_feedbackwizard'),
-            [
-                'shortname' => get_string('matchingcoursefield:shortname', 'block_catquiz_feedbackwizard'),
-                'fullname' => get_string('matchingcoursefield:fullname', 'block_catquiz_feedbackwizard'),
-                'idnumber' => get_string('matchingcoursefield:idnumber', 'block_catquiz_feedbackwizard'),
-            ]
-        );
-        $mform->setType('matchingcoursefield', PARAM_ALPHA);
-        $mform->setDefault('matchingcoursefield', $state['matchingcoursefield'] ?? 'shortname');
-        $mform->disabledIf('matchingcoursefield', 'matchingmode', 'neq', 'rules');
-
-        $mform->addElement(
-            'select',
-            'matchingoperator',
-            get_string('field:matchingoperator', 'block_catquiz_feedbackwizard'),
-            [
-                'contains' => get_string('matchingoperator:contains', 'block_catquiz_feedbackwizard'),
-                'startswith' => get_string('matchingoperator:startswith', 'block_catquiz_feedbackwizard'),
-                'equals' => get_string('matchingoperator:equals', 'block_catquiz_feedbackwizard'),
-                'regex' => get_string('matchingoperator:regex', 'block_catquiz_feedbackwizard'),
-            ]
-        );
-        $mform->setType('matchingoperator', PARAM_ALPHA);
-        $mform->setDefault('matchingoperator', $state['matchingoperator'] ?? 'contains');
-        $mform->disabledIf('matchingoperator', 'matchingmode', 'neq', 'rules');
-
-        $mform->addElement('text', 'matchingpattern', get_string('field:matchingpattern', 'block_catquiz_feedbackwizard'));
-        $mform->setType('matchingpattern', PARAM_TEXT);
-        $mform->setDefault('matchingpattern', $state['matchingpattern'] ?? '');
-        $mform->disabledIf('matchingpattern', 'matchingmode', 'neq', 'rules');
-
-        $mform->addElement(
-            'select',
-            'matchingtargettype',
-            get_string('field:matchingtargettype', 'block_catquiz_feedbackwizard'),
-            [
-                'catscale' => get_string('matchingtargettype:catscale', 'block_catquiz_feedbackwizard'),
-                'course' => get_string('matchingtargettype:course', 'block_catquiz_feedbackwizard'),
-                'group' => get_string('matchingtargettype:group', 'block_catquiz_feedbackwizard'),
-            ]
-        );
-        $mform->setType('matchingtargettype', PARAM_ALPHA);
-        $mform->setDefault('matchingtargettype', $state['matchingtargettype'] ?? 'catscale');
-        $mform->disabledIf('matchingtargettype', 'matchingmode', 'neq', 'rules');
-
-        $mform->addElement('text', 'matchingtargetvalue', get_string('field:matchingtargetvalue', 'block_catquiz_feedbackwizard'));
-        $mform->setType('matchingtargetvalue', PARAM_TEXT);
-        $mform->setDefault('matchingtargetvalue', $state['matchingtargetvalue'] ?? '');
-        $mform->disabledIf('matchingtargetvalue', 'matchingmode', 'neq', 'rules');
-
-        $mform->addElement(
-            'textarea',
-            'matchingcsvdefinition',
-            get_string('field:matchingcsvdefinition', 'block_catquiz_feedbackwizard'),
-            ['rows' => 8, 'cols' => 90]
-        );
-        $mform->setType('matchingcsvdefinition', PARAM_RAW);
-        $mform->setDefault('matchingcsvdefinition', $state['matchingcsvdefinition'] ?? '');
-        $mform->disabledIf('matchingcsvdefinition', 'matchingmode', 'neq', 'csv');
-    }
-
     /**
      * Add the review step.
      *
@@ -643,8 +537,8 @@ class wizard extends dynamic_form {
      * @return void
      */
     protected function add_review_step(\MoodleQuickForm $mform): void {
-        $mform->addElement('header', 'step5header', get_string('step05:title', 'block_catquiz_feedbackwizard'));
-        $mform->addElement('static', 'step5description', '', get_string('step05:description', 'block_catquiz_feedbackwizard'));
+        $mform->addElement('header', 'step6header', get_string('step06:title', 'block_catquiz_feedbackwizard'));
+        $mform->addElement('static', 'step6description', '', get_string('step06:description', 'block_catquiz_feedbackwizard'));
         $mform->addElement(
             'static',
             'reviewsummary',
@@ -739,16 +633,6 @@ class wizard extends dynamic_form {
                 if ($text === '') {
                     $errors['feedbacktext_' . $index] = get_string('required');
                 }
-                if (($data['feedbacktemplateformat_' . $index] ?? 'mustache') === 'mustache') {
-                    $unknowntokens = feedback_template_service::get_unknown_tokens($text);
-                    if (!empty($unknowntokens)) {
-                        $errors['feedbacktext_' . $index] = get_string(
-                            'error:feedbackunknowntoken',
-                            'block_catquiz_feedbackwizard',
-                            implode(', ', $unknowntokens)
-                        );
-                    }
-                }
                 if ($lower === null || $lower === '') {
                     $errors['feedbacklower_' . $index] = get_string('required');
                 }
@@ -770,23 +654,30 @@ class wizard extends dynamic_form {
         }
 
 
-
         if ($step === 5) {
-            $matchingmode = (string)($data['matchingmode'] ?? 'none');
-            if ($matchingmode === 'rules') {
-                if (empty($data['matchingcategoryid'])) {
-                    $errors['matchingcategoryid'] = get_string('error:matchingcategoryrequired', 'block_catquiz_feedbackwizard');
-                }
+            $matchingmode = matching_config_service::normalise_mode((string)($data['matchingmode'] ?? 'none'));
+            if ($matchingmode !== 'none' && empty($data['matchingcategoryid'])) {
+                $errors['matchingcategoryid'] = get_string('error:matchingcategoryrequired', 'block_catquiz_feedbackwizard');
+            }
+            if ($matchingmode === 'rule') {
                 if (trim((string)($data['matchingpattern'] ?? '')) === '') {
                     $errors['matchingpattern'] = get_string('error:matchingpatternrequired', 'block_catquiz_feedbackwizard');
                 }
                 if (trim((string)($data['matchingtargetvalue'] ?? '')) === '') {
                     $errors['matchingtargetvalue'] = get_string('error:matchingtargetrequired', 'block_catquiz_feedbackwizard');
                 }
-            } else if ($matchingmode === 'csv') {
-                if (trim((string)($data['matchingcsvdefinition'] ?? '')) === '') {
-                    $errors['matchingcsvdefinition'] = get_string('error:matchingcsvrequired', 'block_catquiz_feedbackwizard');
+                if (
+                    ($data['matchingoperator'] ?? '') === 'regex'
+                    && matching_config_service::has_invalid_regex(trim((string)($data['matchingpattern'] ?? '')))
+                ) {
+                    $errors['matchingpattern'] = get_string('error:matchingregexinvalid', 'block_catquiz_feedbackwizard');
                 }
+            }
+            if (
+                $matchingmode === 'csv'
+                && matching_config_service::count_csv_rules((string)($data['matchingcsv'] ?? '')) < 1
+            ) {
+                $errors['matchingcsv'] = get_string('error:matchingcsvinvalid', 'block_catquiz_feedbackwizard');
             }
         }
 
@@ -957,15 +848,10 @@ class wizard extends dynamic_form {
                 s($this->get_template_format_label((string)($feedbackfields['feedbacktemplateformat_' . $index] ?? 'mustache')));
             $summary[] = get_string('field:feedbackactionsummary', 'block_catquiz_feedbackwizard', $index) . ': ' .
                 s($this->describe_feedback_actions($feedbackfields, $index));
-            $preview = feedback_template_service::render_preview(
-                (string)($feedbackfields['feedbacktext_' . $index] ?? ''),
-                (string)($feedbackfields['feedbacktemplateformat_' . $index] ?? 'mustache')
-            );
-            $summary[] = get_string('field:previewtext', 'block_catquiz_feedbackwizard', $index) . ': ' . s($preview);
         }
 
         $summary[] = get_string('field:matchingsummary', 'block_catquiz_feedbackwizard') . ': ' .
-            s($this->describe_matching_summary($data));
+            s($this->describe_matching_configuration($data));
 
         foreach ($this->build_review_warnings($data) as $warning) {
             $summary[] = get_string('field:reviewwarning', 'block_catquiz_feedbackwizard') . ': ' . s($warning);
@@ -1044,37 +930,59 @@ class wizard extends dynamic_form {
                 $warnings[] = get_string('warning:feedbackrangesneedreview', 'block_catquiz_feedbackwizard');
                 break;
             }
-            $feedbacktext = trim((string)($feedbackfields['feedbacktext_' . $index] ?? ''));
-            if ($feedbacktext === '') {
+            if (trim((string)($feedbackfields['feedbacktext_' . $index] ?? '')) === '') {
                 $warnings[] = get_string('warning:feedbacktextmissing', 'block_catquiz_feedbackwizard');
                 break;
-            }
-            $templateformat = (string)($feedbackfields['feedbacktemplateformat_' . $index] ?? 'mustache');
-            if ($templateformat === 'mustache') {
-                $unknowntokens = feedback_template_service::get_unknown_tokens($feedbacktext);
-                if (!empty($unknowntokens)) {
-                    $warnings[] = get_string(
-                        'warning:feedbackunknowntokens',
-                        'block_catquiz_feedbackwizard',
-                        implode(', ', $unknowntokens)
-                    );
-                    break;
-                }
             }
             $previousupper = $upper;
         }
 
-        $matchingmode = (string)($data['matchingmode'] ?? 'none');
-        if ($matchingmode === 'rules') {
-            if (empty($data['matchingcategoryid']) || trim((string)($data['matchingpattern'] ?? '')) === ''
-                    || trim((string)($data['matchingtargetvalue'] ?? '')) === '') {
-                $warnings[] = get_string('warning:matchingincomplete', 'block_catquiz_feedbackwizard');
+        $matchingmode = matching_config_service::normalise_mode((string)($data['matchingmode'] ?? 'none'));
+        if ($matchingmode === 'rule') {
+            if (
+                empty($data['matchingcategoryid'])
+                || trim((string)($data['matchingpattern'] ?? '')) === ''
+                || trim((string)($data['matchingtargetvalue'] ?? '')) === ''
+            ) {
+                $warnings[] = get_string('warning:matchingconfigincomplete', 'block_catquiz_feedbackwizard');
             }
-        } else if ($matchingmode === 'csv' && trim((string)($data['matchingcsvdefinition'] ?? '')) === '') {
-            $warnings[] = get_string('warning:matchingincomplete', 'block_catquiz_feedbackwizard');
+        }
+        if (
+            $matchingmode === 'csv'
+            && matching_config_service::count_csv_rules((string)($data['matchingcsv'] ?? '')) < 1
+        ) {
+            $warnings[] = get_string('warning:matchingconfigincomplete', 'block_catquiz_feedbackwizard');
         }
 
         return $warnings;
+    }
+
+    /**
+     * Return a summary for the configured matching setup.
+     *
+     * @param array $data
+     * @return string
+     */
+    protected function describe_matching_configuration(array $data): string {
+        $mode = matching_config_service::normalise_mode((string)($data['matchingmode'] ?? 'none'));
+        if ($mode === 'none') {
+            return get_string('matchingmode:none', 'block_catquiz_feedbackwizard');
+        }
+        if ($mode === 'csv') {
+            return get_string('matchingmode:csv', 'block_catquiz_feedbackwizard') . ' (' .
+                matching_config_service::count_csv_rules((string)($data['matchingcsv'] ?? '')) . ')';
+        }
+
+        $parts = [get_string('matchingmode:rule', 'block_catquiz_feedbackwizard')];
+        $parts[] = (string)($data['matchingcoursefield'] ?? 'shortname');
+        $parts[] = (string)($data['matchingoperator'] ?? 'contains');
+        $parts[] = trim((string)($data['matchingpattern'] ?? ''));
+        $parts[] = '→';
+        $parts[] = (string)($data['matchingtargettype'] ?? 'catscale');
+        $parts[] = trim((string)($data['matchingtargetvalue'] ?? ''));
+        return implode(' ', array_filter($parts, static function($value): bool {
+            return $value !== '';
+        }));
     }
 
     /**
@@ -1112,37 +1020,6 @@ class wizard extends dynamic_form {
                 ($target !== '' ? ' (' . $target . ')' : '');
         }
         return implode(', ', $actions);
-    }
-
-
-
-    /**
-     * Return a summary label for matching settings.
-     *
-     * @param array $data
-     * @return string
-     */
-    protected function describe_matching_summary(array $data): string {
-        $matchingmode = (string)($data['matchingmode'] ?? 'none');
-        if ($matchingmode === 'rules') {
-            return get_string('matchingmode:rules', 'block_catquiz_feedbackwizard') . ': '
-                . (string)($data['matchingcoursefield'] ?? 'shortname') . ' '
-                . (string)($data['matchingoperator'] ?? 'contains') . ' '
-                . (string)($data['matchingpattern'] ?? '') . ' => '
-                . (string)($data['matchingtargettype'] ?? 'catscale') . ' '
-                . (string)($data['matchingtargetvalue'] ?? '');
-        }
-        if ($matchingmode === 'csv') {
-            $lines = preg_split('/\R/', trim((string)($data['matchingcsvdefinition'] ?? '')));
-            $linecount = 0;
-            foreach ($lines as $line) {
-                if (trim((string)$line) !== '') {
-                    $linecount++;
-                }
-            }
-            return get_string('matchingmode:csv', 'block_catquiz_feedbackwizard') . ': ' . $linecount;
-        }
-        return get_string('matchingmode:none', 'block_catquiz_feedbackwizard');
     }
 
     /**

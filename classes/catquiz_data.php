@@ -184,6 +184,25 @@ class catquiz_data {
         return $options;
     }
 
+
+    /**
+     * Return course category options for matching rules.
+     *
+     * @return array
+     */
+    public static function get_course_category_options(): array {
+        global $DB;
+
+        $records = $DB->get_records('course_categories', null, 'sortorder ASC, id ASC', 'id, name, path');
+        $options = [0 => get_string('choosedots')];
+        foreach ($records as $record) {
+            $depth = max(0, count(array_filter(explode('/', (string)$record->path))) - 1);
+            $prefix = str_repeat('- ', $depth);
+            $options[(int)$record->id] = $prefix . format_string($record->name);
+        }
+        return $options;
+    }
+
     /**
      * Return one catscale record.
      *
