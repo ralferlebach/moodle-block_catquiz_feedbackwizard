@@ -18,26 +18,28 @@
  * Upgrade steps for block_catquiz_feedbackwizard.
  *
  * @package     block_catquiz_feedbackwizard
- * @copyright   2026 OpenAI
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 /**
- * Execute block_catquiz_feedbackwizard upgrade steps.
+ * Execute plugin upgrades.
+ *
+ * @param int $oldversion
+ * @return bool
  *
  * @package block_catquiz_feedbackwizard
- * @param int $oldversion The currently installed version.
- * @return bool
  */
 function xmldb_block_catquiz_feedbackwizard_upgrade(int $oldversion): bool {
     global $DB;
 
     $dbman = $DB->get_manager();
 
-    if ($oldversion < 2026033000) {
+    if ($oldversion < 2026033100) {
         $table = new xmldb_table('block_catquiz_feedbackwizard');
         $field = new xmldb_field('testid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'courseid');
-
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -47,7 +49,7 @@ function xmldb_block_catquiz_feedbackwizard_upgrade(int $oldversion): bool {
             $dbman->add_index($table, $index);
         }
 
-        upgrade_block_savepoint(true, 2026033000, 'catquiz_feedbackwizard');
+        upgrade_block_savepoint(true, 2026033100, 'catquiz_feedbackwizard');
     }
 
     return true;

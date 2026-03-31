@@ -15,36 +15,27 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * CATQuiz test data access helpers.
+ * Data access helper methods for the CATQuiz wizard.
  *
  * @package     block_catquiz_feedbackwizard
- * @copyright   2026 OpenAI
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace block_catquiz_feedbackwizard;
 
-use moodle_url;
+defined('MOODLE_INTERNAL') || die();
 
 /**
- * Helper methods for reading CATQuiz tests for the wizard.
+ * Data access helper methods for the CATQuiz wizard.
  *
  * @package     block_catquiz_feedbackwizard
- * @copyright   2026 OpenAI
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class catquiz_data {
-    /** @var string Readiness state: not configured. */
-    public const READINESS_NOTCONFIGURED = 'notconfigured';
-    /** @var string Readiness state: partially configured. */
-    public const READINESS_PARTIAL = 'partial';
-    /** @var string Readiness state: configured. */
-    public const READINESS_CONFIGURED = 'configured';
-
     /**
      * Return CAT tests for a course.
-     *
-     * The wizard references local_catquiz_tests.id as testid.
      *
      * @param int $courseid
      * @return array
@@ -56,24 +47,47 @@ class catquiz_data {
             return [];
         }
 
-        $records = $DB->get_records('local_catquiz_tests', ['courseid' => $courseid], 'name ASC, id ASC');
-        $tests = [];
+        $sql = "SELECT lct.id,
+                       lct.courseid,
+                       lct.componentid,
+                       lct.component,
+                       lct.catscaleid,
+                       lct.name,
+                       lct.json,
+                       aq.id AS adaptivequizid,
+                       aq.name AS adaptivequizname
+                  FROM {local_catquiz_tests} lct
+             LEFT JOIN {adaptivequiz} aq
+                    ON aq.id = lct.componentid
+                   AND lct.component = :component
+                 WHERE lct.courseid = :courseid
+                   AND lct.status = :status
+              ORDER BY lct.name ASC, lct.id ASC";
 
-        foreach ($records as $record) {
-            $record->readiness = self::analyse_readiness($record);
-            $record->readinesslabel = self::get_readiness_label($record->readiness);
-            $record->editurl = (new moodle_url('/local/catquiz/manage_testenvironments.php'))->out(false);
-            $tests[$record->id] = $record;
-        }
+        $params = [
+            'component' => 'mod_adaptivequiz',
+            'courseid' => $courseid,
+            'status' => 1,
+        ];
 
-        return $tests;
+        return array_values($DB->get_records_sql($sql, $params));
     }
 
     /**
-     * Return a single CAT test by local_catquiz_tests.id.
+     * Backwards compatible wrapper for the old typoed method name.
+     *
+     * @param int $courseid
+     * @return array
+     */
+    public static function get_catquiz_by_couseid(int $courseid): array {
+        return self::get_tests_by_courseid($courseid);
+    }
+
+    /**
+     * Return a single CAT test record.
      *
      * @param int $testid
-     * @return ?\stdClass
+     * @return \stdClass|null
      */
     public static function get_test_by_id(int $testid): ?\stdClass {
         global $DB;
@@ -82,72 +96,112 @@ class catquiz_data {
             return null;
         }
 
-        $record = $DB->get_record('local_catquiz_tests', ['id' => $testid]);
-        if (!$record) {
-            return null;
-        }
+        $sql = "SELECT lct.id,
+                       lct.courseid,
+                       lct.componentid,
+                       lct.component,
+                       lct.catscaleid,
+                       lct.contextid,
+                       lct.name,
+                       lct.description,
+                       lct.descriptionformat,
+                       lct.json,
+                       aq.name AS adaptivequizname
+                  FROM {local_catquiz_tests} lct
+             LEFT JOIN {adaptivequiz} aq
+                    ON aq.id = lct.componentid
+                   AND lct.component = :component
+                 WHERE lct.id = :testid";
 
-        $record->readiness = self::analyse_readiness($record);
-        $record->readinesslabel = self::get_readiness_label($record->readiness);
-        $record->editurl = (new moodle_url('/local/catquiz/manage_testenvironments.php'))->out(false);
+        $params = [
+            'component' => 'mod_adaptivequiz',
+            'testid' => $testid,
+        ];
 
-        return $record;
+        $record = $DB->get_record_sql($sql, $params);
+        return $record ?: null;
     }
 
     /**
-     * Return tests which are useful as clone sources.
+     * Return clone candidates for a course.
      *
      * @param int $courseid
-     * @param int $excludedtestid
+     * @param int $excludetestid
      * @return array
      */
-    public static function get_clone_candidates(int $courseid, int $excludedtestid = 0): array {
-        $tests = self::get_tests_by_courseid($courseid);
+    public static function get_clone_candidates(int $courseid, int $excludetestid = 0): array {
+        $records = self::get_tests_by_courseid($courseid);
 
-        foreach ($tests as $id => $test) {
-            if ((int)$id === $excludedtestid) {
-                unset($tests[$id]);
-            }
+        if ($excludetestid < 1) {
+            return $records;
         }
 
-        return $tests;
+        return array_values(array_filter($records, static function($record) use ($excludetestid) {
+            return (int)$record->id !== $excludetestid;
+        }));
     }
 
     /**
-     * Return readiness for a local_catquiz_tests record.
+     * Return main scale options.
+     *
+     * @return array
+     */
+    public static function get_main_scale_options(): array {
+        global $DB;
+
+        $sql = "SELECT id, name
+                  FROM {local_catquiz_catscales}
+                 WHERE parentid = 0
+              ORDER BY name ASC, id ASC";
+
+        $records = $DB->get_records_sql($sql);
+        $options = [];
+        foreach ($records as $record) {
+            $options[(int)$record->id] = format_string($record->name);
+        }
+        return $options;
+    }
+
+    /**
+     * Return subscale options for a main scale.
+     *
+     * @param int $mainscaleid
+     * @return array
+     */
+    public static function get_subscale_options(int $mainscaleid): array {
+        global $DB;
+
+        if ($mainscaleid < 1) {
+            return [];
+        }
+
+        $records = $DB->get_records('local_catquiz_catscales', ['parentid' => $mainscaleid], 'name ASC, id ASC', 'id, name');
+        $options = [];
+        foreach ($records as $record) {
+            $options[(int)$record->id] = format_string($record->name);
+        }
+        return $options;
+    }
+
+    /**
+     * Return human readable label for a test record.
      *
      * @param \stdClass $record
      * @return string
      */
-    public static function analyse_readiness(\stdClass $record): string {
-        $hascatscale = !empty($record->catscaleid);
-        $hasjson = !empty($record->json);
+    public static function get_test_display_name(\stdClass $record): string {
+        $parts = [];
+        $name = trim((string)($record->name ?? ''));
+        $adaptivequizname = trim((string)($record->adaptivequizname ?? ''));
 
-        if (!$hascatscale && !$hasjson) {
-            return self::READINESS_NOTCONFIGURED;
+        if ($name !== '') {
+            $parts[] = $name;
         }
-
-        if ($hascatscale && $hasjson) {
-            return self::READINESS_CONFIGURED;
+        if ($adaptivequizname !== '' && $adaptivequizname !== $name) {
+            $parts[] = $adaptivequizname;
         }
+        $parts[] = '#' . (int)$record->id;
 
-        return self::READINESS_PARTIAL;
-    }
-
-    /**
-     * Return a language string label for a readiness state.
-     *
-     * @param string $state
-     * @return string
-     */
-    public static function get_readiness_label(string $state): string {
-        switch ($state) {
-            case self::READINESS_CONFIGURED:
-                return get_string('readiness:configured', 'block_catquiz_feedbackwizard');
-            case self::READINESS_PARTIAL:
-                return get_string('readiness:partial', 'block_catquiz_feedbackwizard');
-            default:
-                return get_string('readiness:notconfigured', 'block_catquiz_feedbackwizard');
-        }
+        return implode(' – ', $parts);
     }
 }

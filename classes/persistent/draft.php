@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Draft persistent class for CATQuiz wizard.
+ * Draft persistent class for the CATQuiz wizard.
  *
  * @package     block_catquiz_feedbackwizard
- * @copyright   2026 OpenAI
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -26,21 +26,25 @@ namespace block_catquiz_feedbackwizard\persistent;
 
 use core\persistent;
 
+defined('MOODLE_INTERNAL') || die();
+
 /**
- * Persistent class for managing wizard draft data.
+ * Persistent class for wizard drafts.
  *
  * @package     block_catquiz_feedbackwizard
+ * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class draft extends persistent {
-    /** @var string Database table for draft data. */
-    public const TABLE = 'block_catquiz_feedbackwizard';
+    /** @var string Table name. */
+    const TABLE = 'block_catquiz_feedbackwizard';
 
     /**
-     * Define the properties for this persistent class.
+     * Define persistent properties.
      *
      * @return array
      */
-    protected static function define_properties() {
+    protected static function define_properties(): array {
         return [
             'userid' => [
                 'type' => PARAM_INT,
