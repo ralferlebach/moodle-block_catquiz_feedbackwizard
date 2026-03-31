@@ -84,32 +84,18 @@ final class test_config_writer_test extends \advanced_testcase {
         $this->assertSame('placement', $mapped['catquiz_wizard']['scenario']);
         $this->assertSame('placement', $mapped['catquiz_wizard']['testgoal']);
     }
+
+
     /**
-     * Test applying a predefined scenario preset.
+     * Test mapping simple precision modes to standard error ranges.
      *
-     * @covers ::apply_wizard_state
+     * @covers ::map_precision_mode
      * @return void
      */
-    public function test_apply_wizard_state_from_scenario_preset(): void {
-        $wizardstate = [
-            'wizardmode' => 'scenario',
-            'scenario' => 'final',
-            'mainscaleid' => 4,
-            'subscaleids' => [],
-            'questioncount' => 30,
-            'timelimitenabled' => 1,
-            'timelimitminutes' => 60,
-            'precisionmode' => 'medium',
-            'testgoal' => 'final',
-            'completionenabled' => 1,
-        ];
-
-        $mapped = test_config_writer::apply_wizard_state([], $wizardstate);
-
-        $this->assertSame('final', $mapped['catquiz_wizard']['scenario']);
-        $this->assertSame('final', $mapped['catquiz_wizard']['testgoal']);
-        $this->assertSame(1, $mapped['completion']);
-        $this->assertSame(60, $mapped['catquiz_timelimitgroup']['catquiz_maxtimeperattempt']);
+    public function test_map_precision_mode(): void {
+        $this->assertSame([0.6, 1.0], test_config_writer::map_precision_mode('low'));
+        $this->assertSame([0.35, 1.0], test_config_writer::map_precision_mode('medium'));
+        $this->assertSame([0.2, 1.0], test_config_writer::map_precision_mode('high'));
     }
 
 }

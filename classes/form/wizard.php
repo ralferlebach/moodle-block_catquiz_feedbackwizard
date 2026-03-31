@@ -25,7 +25,6 @@
 namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
-use block_catquiz_feedbackwizard\local\service\scenario_preset_service;
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
 use block_catquiz_feedbackwizard\local\service\test_config_writer;
 use block_catquiz_feedbackwizard\persistent\draft as draft_persistent;
@@ -414,8 +413,9 @@ class wizard extends dynamic_form {
                 $errors['timelimitminutes'] = get_string('err_positive', 'form');
             }
             if (
-                !empty($data['minquestioncount']) && !empty($data['questioncount']) &&
-                (int)$data['minquestioncount'] > (int)$data['questioncount']
+                !empty($data['minquestioncount'])
+                && !empty($data['questioncount'])
+                && (int)$data['minquestioncount'] > (int)$data['questioncount']
             ) {
                 $errors['questioncount'] = get_string('error:minlargerthanmax', 'block_catquiz_feedbackwizard');
             }
@@ -481,15 +481,6 @@ class wizard extends dynamic_form {
                     }
                 }
             }
-
-            if ($wizardmode === 'scenario' && !empty($data->scenario)) {
-                $merged = array_merge(
-                    scenario_preset_service::get_preset((string)$data->scenario),
-                    $merged
-                );
-                $merged['selectedtest'] = $selectedtest;
-                $merged['testid'] = $selectedtest;
-            }
         }
 
         $draft->set('testid', $selectedtest);
@@ -549,8 +540,6 @@ class wizard extends dynamic_form {
         $summary[] = get_string('field:selectedtest', 'block_catquiz_feedbackwizard') . ': #' . (int)($data['selectedtest'] ?? 0);
         $summary[] = get_string('field:wizardmode', 'block_catquiz_feedbackwizard') . ': ' .
             s((string)($data['wizardmode'] ?? 'edit'));
-        $summary[] = get_string('field:scenario', 'block_catquiz_feedbackwizard') . ': ' .
-            s((string)($data['scenario'] ?? ''));
         $summary[] = get_string('field:mainscaleid', 'block_catquiz_feedbackwizard') . ': ' . (int)($data['mainscaleid'] ?? 0);
         $summary[] = get_string('field:subscaleids', 'block_catquiz_feedbackwizard') . ': ' .
             count((array)($data['subscaleids'] ?? []));
@@ -564,7 +553,39 @@ class wizard extends dynamic_form {
         $summary[] = get_string('field:completionenabled', 'block_catquiz_feedbackwizard') . ': ' .
             (!empty($data['completionenabled']) ? get_string('yes') : get_string('no'));
 
+        foreach ($this->build_review_warnings($data) as $warning) {
+            $summary[] = get_string('field:reviewwarning', 'block_catquiz_feedbackwizard') . ': ' . s($warning);
+        }
+
         return html_writer::alist($summary);
+    }
+
+
+    /**
+     * Build review warnings for the current wizard state.
+     *
+     * @param array $data
+     * @return array
+     */
+    protected function build_review_warnings(array $data): array {
+        $warnings = [];
+        $subscalecount = count((array)($data['subscaleids'] ?? []));
+        if ($subscalecount < 1) {
+            $warnings[] = get_string('warning:nosubscalesselected', 'block_catquiz_feedbackwizard');
+        }
+
+        $questioncount = (int)($data['questioncount'] ?? 0);
+        if (($data['precisionmode'] ?? 'medium') === 'high' && $questioncount > 0 && $questioncount < 15) {
+            $warnings[] = get_string('warning:highprecisionlowquestions', 'block_catquiz_feedbackwizard');
+        }
+
+        $timelimitenabled = !empty($data['timelimitenabled']);
+        $timelimitminutes = (int)($data['timelimitminutes'] ?? 0);
+        if ($timelimitenabled && $timelimitminutes > 0 && $timelimitminutes < 10) {
+            $warnings[] = get_string('warning:shorttimelimit', 'block_catquiz_feedbackwizard');
+        }
+
+        return $warnings;
     }
 
     /**

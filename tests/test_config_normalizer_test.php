@@ -100,6 +100,24 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame(0, $defaults['completionenabled']);
     }
 
+
+    /**
+     * Test extracting a precision mode from standard error settings.
+     *
+     * @covers ::extract_precision_mode
+     * @return void
+     */
+    public function test_extract_precision_mode(): void {
+        $jsondata = [
+            'catquiz_standarderrorgroup' => [
+                'catquiz_standarderror_min' => 0.55,
+            ],
+        ];
+
+        $this->assertSame('low', test_config_normalizer::extract_precision_mode($jsondata));
+        $this->assertSame('high', test_config_normalizer::extract_precision_mode([], ['precisionmode' => 'high']));
+    }
+
     /**
      * Test extracting wizard-owned goal and completion defaults.
      *

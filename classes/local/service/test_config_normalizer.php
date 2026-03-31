@@ -283,5 +283,4 @@ class test_config_normalizer {
         }
         return !empty($jsondata['completion']) ? 1 : 0;
     }
-
 }
