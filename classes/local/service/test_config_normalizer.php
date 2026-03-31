@@ -420,8 +420,8 @@ class test_config_normalizer {
             foreach ((array)$state['feedbackranges'] as $range) {
                 $ranges[] = [
                     'label' => (string)($range['label'] ?? ''),
-                    'lower' => (float)($range['lower'] ?? 0),
-                    'upper' => (float)($range['upper'] ?? 0),
+                    'lower' => (isset($range['lower']) && $range['lower'] !== '') ? (float)$range['lower'] : null,
+                    'upper' => (isset($range['upper']) && $range['upper'] !== '') ? (float)$range['upper'] : null,
                     'text' => (string)($range['text'] ?? ''),
                 ];
             }
@@ -444,7 +444,7 @@ class test_config_normalizer {
             return self::merge_feedback_ranges_with_defaults($ranges, $minimum, $maximum);
         }
 
-        return self::build_default_feedback_ranges($rangecount, $minimum, $maximum);
+        return [];
     }
 
     /**
