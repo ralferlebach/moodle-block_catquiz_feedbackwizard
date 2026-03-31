@@ -39,6 +39,20 @@ class catquiz_data {
     const DEFAULT_SCALE_MAX = 5.0;
 
     /**
+     * Check whether a local_catquiz table exists.
+     *
+     * @param string $tablename
+     * @return bool
+     */
+    protected static function local_catquiz_table_exists(string $tablename): bool {
+        global $DB;
+
+        $manager = $DB->get_manager();
+        $table = new \xmldb_table($tablename);
+        return $manager->table_exists($table);
+    }
+
+    /**
      * Return CAT tests for a course.
      *
      * @param int $courseid
@@ -153,6 +167,10 @@ class catquiz_data {
     public static function get_main_scale_options(): array {
         global $DB;
 
+        if (!self::local_catquiz_table_exists('local_catquiz_catscales')) {
+            return [];
+        }
+
         $sql = "SELECT id, name
                   FROM {local_catquiz_catscales}
                  WHERE parentid = 0
@@ -175,7 +193,7 @@ class catquiz_data {
     public static function get_scale_by_id(int $scaleid): ?\stdClass {
         global $DB;
 
-        if ($scaleid < 1) {
+        if ($scaleid < 1 || !self::local_catquiz_table_exists('local_catquiz_catscales')) {
             return null;
         }
 
@@ -247,7 +265,7 @@ class catquiz_data {
     public static function get_subscale_records(int $mainscaleid): array {
         global $DB;
 
-        if ($mainscaleid < 1) {
+        if ($mainscaleid < 1 || !self::local_catquiz_table_exists('local_catquiz_catscales')) {
             return [];
         }
 
@@ -267,11 +285,14 @@ class catquiz_data {
         }
 
         $itemcounts = [];
-        $countrecords = $DB->get_records_sql(
-            'SELECT catscaleid, COUNT(*) AS itemcount
-               FROM {local_catquiz_items}
-           GROUP BY catscaleid'
-        );
+        $countrecords = [];
+        if (self::local_catquiz_table_exists('local_catquiz_items')) {
+            $countrecords = $DB->get_records_sql(
+                'SELECT catscaleid, COUNT(*) AS itemcount
+                   FROM {local_catquiz_items}
+               GROUP BY catscaleid'
+            );
+        }
         foreach ($countrecords as $countrecord) {
             $itemcounts[(int)$countrecord->catscaleid] = (int)$countrecord->itemcount;
         }
