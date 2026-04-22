@@ -1,0 +1,57 @@
+## SESSION-ABSCHLUSS: Kontextdokument erzeugen
+
+Wir beenden jetzt die aktuelle Arbeitssitzung zum Projekt **CATQuiz Settings Wizard** (`block_catquiz_feedbackwizard`).
+
+Erstelle ein kompaktes Kontext-Dokument für die nächste Sitzung.
+Verwende exakt diese Struktur:
+
+---
+
+# Kontext-Dokument — CATQuiz Settings Wizard
+Erstellt: [Datum + Uhrzeit]
+Sitzung Nr.: [fortlaufend]
+
+## 1. Aktueller Projektstand
+- aktuelle Phase
+- Ziel dieser Phase
+- was in dieser Sitzung konkret erledigt wurde
+
+## 2. Finalisierte Artefakte
+Liste aller Dateien/Klassen, die in dieser oder früheren Sitzungen als fertig markiert wurden:
+- Pfad relativ zum Plugin-Root
+- kurzer Zweck
+- bekannte Einschränkungen / TODOs
+
+## 3. Offene Arbeitspakete (priorisiert)
+Was als Nächstes zu tun ist, in Reihenfolge:
+1. [Datei/Klasse/Aufgabe] – warum, was genau
+2. ...
+
+## 4. Architekturentscheidungen (verbindlich)
+Alle Entscheidungen, die spätere Sitzungen binden:
+- Namenskonventionen
+- Schnittstellen
+- Settings-Gating
+- Datenschutzentscheidungen
+- Abweichungen vom Pflichtenheft mit Begründung
+
+## 5. Kritische Abhängigkeiten
+Welche Klassen/Services/Adapter voneinander abhängen und in welcher Reihenfolge sie gebaut oder geändert werden sollten.
+
+## 6. Bekannte Probleme und Risiken
+Offene technische Fragen, ungelöste Moodle-spezifische Probleme, Datenschutz- oder Architektur-Risiken.
+
+## 7. Repositorium / Codebasis
+- URL: [falls bekannt]
+- Branch: [falls bekannt]
+- letzte bekannte Commit-Message: [falls bekannt]
+- falls unbekannt, explizit „unbekannt“ schreiben
+
+## 8. Für die nächste Sitzung mitzugebende Dateien
+Welche konkreten Dateien zu Beginn der nächsten Sitzung gelesen werden sollen und warum.
+
+---
+
+Wo Informationen fehlen, schreibe ausdrücklich **„unbekannt“** oder **„nicht besprochen“**.
+Nichts erfinden.
+
