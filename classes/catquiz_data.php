@@ -107,7 +107,7 @@ class catquiz_data {
      * @param int $testid
      * @return \stdClass|null
      */
-    public static function get_test_by_id(int $testid): ?\stdClass {
+    public static function get_test_by_id(int $testid, int $courseid = 0): ?\stdClass {
         global $DB;
 
         if ($testid < 1) {
@@ -136,8 +136,31 @@ class catquiz_data {
             'testid' => $testid,
         ];
 
+        if ($courseid > 0) {
+            $sql .= " AND lct.courseid = :courseid";
+            $params['courseid'] = $courseid;
+        }
+
         $record = $DB->get_record_sql($sql, $params);
         return $record ?: null;
+    }
+
+    /**
+     * Return whether a CAT test belongs to the given course.
+     *
+     * Used to make sure a submitted test id cannot address a test outside the
+     * course context the capability check was performed against.
+     *
+     * @param int $testid
+     * @param int $courseid
+     * @return bool
+     */
+    public static function test_belongs_to_course(int $testid, int $courseid): bool {
+        if ($testid < 1 || $courseid < 1) {
+            return false;
+        }
+
+        return self::get_test_by_id($testid, $courseid) !== null;
     }
 
     /**

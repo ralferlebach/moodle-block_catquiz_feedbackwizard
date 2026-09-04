@@ -25,11 +25,13 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'block_catquiz_feedbackwizard';
-$plugin->release = '0.4.0';
-$plugin->version = 2026033107;
-$plugin->requires = 2022112800;
+$plugin->release = '0.5.0';
+$plugin->version = 2026090401;
+$plugin->requires = 2024100700;
+$plugin->supported = [405, 501];
 $plugin->dependencies = [
-    'mod_adaptivequiz' => 2024031502,
-    'local_catquiz' => 2024062800,
+    'mod_adaptivequiz' => 2026081900,
+    'adaptivequizcatmodel_catquiz' => 2026081900,
+    'local_catquiz' => 2026083025,
 ];
 $plugin->maturity = MATURITY_ALPHA;

@@ -93,6 +93,32 @@ jobs:
         with:
           path: plugin
 
+      - name: Check out mod_adaptivequiz
+        uses: actions/checkout@v3
+        with:
+          repository: ralferlebach/moodle-mod_adaptivequiz
+          ref: v-3.0
+          path: extra/mod_adaptivequiz
+
+      - name: Check out adaptivequizcatmodel_catquiz
+        uses: actions/checkout@v3
+        with:
+          repository: ralferlebach/moodle-adaptivequizcatmodel_catquiz
+          ref: v-3.0
+          path: extra/adaptivequizcatmodel_catquiz
+
+      - name: Check out local_wunderbyte_table
+        uses: actions/checkout@v3
+        with:
+          repository: Wunderbyte-GmbH/moodle-local_wunderbyte_table
+          path: extra/local_wunderbyte_table
+
+      - name: Check out local_catquiz
+        uses: actions/checkout@v3
+        with:
+          repository: ralferlebach/moodle-local_catquiz
+          path: extra/local_catquiz
+
       - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
@@ -111,7 +137,8 @@ jobs:
 
       - name: Install moodle-plugin-ci
         run: |
-          moodle-plugin-ci install --plugin ./plugin --db-host=127.0.0.1
+          moodle-plugin-ci install --plugin ./plugin --db-host=127.0.0.1 \
+            --extra-plugins ./extra
         env:
           DB: ${{ matrix.database }}
           MOODLE_BRANCH: ${{ matrix.moodle-branch }}

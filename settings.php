@@ -31,8 +31,75 @@ if ($hassiteconfig) {
         new lang_string('pluginname', 'block_catquiz_feedbackwizard')
     );
 
-    // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
     if ($ADMIN->fulltree) {
-        // TODO: Define actual plugin settings page and add it to the tree.
+        $settings->add(new admin_setting_heading(
+            'block_catquiz_feedbackwizard/optionalfeatures',
+            new lang_string('settings:optionalfeatures', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:optionalfeatures_desc', 'block_catquiz_feedbackwizard')
+        ));
+
+        $settings->add(new admin_setting_configcheckbox(
+            'block_catquiz_feedbackwizard/enable_courseprovisioning',
+            new lang_string('settings:enable_courseprovisioning', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:enable_courseprovisioning_desc', 'block_catquiz_feedbackwizard'),
+            0
+        ));
+
+        $settings->add(new admin_setting_configcheckbox(
+            'block_catquiz_feedbackwizard/enable_groupautocreate',
+            new lang_string('settings:enable_groupautocreate', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:enable_groupautocreate_desc', 'block_catquiz_feedbackwizard'),
+            0
+        ));
+
+        $settings->add(new admin_setting_configcheckbox(
+            'block_catquiz_feedbackwizard/enable_ai_feedback_refinement',
+            new lang_string('settings:enable_ai_feedback_refinement', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:enable_ai_feedback_refinement_desc', 'block_catquiz_feedbackwizard'),
+            0
+        ));
+
+        $settings->add(new admin_setting_configtextarea(
+            'block_catquiz_feedbackwizard/ai_feedback_systemprompt',
+            new lang_string('settings:ai_feedback_systemprompt', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:ai_feedback_systemprompt_desc', 'block_catquiz_feedbackwizard'),
+            '',
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_heading(
+            'block_catquiz_feedbackwizard/dataretention',
+            new lang_string('settings:dataretention', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:dataretention_desc', 'block_catquiz_feedbackwizard')
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            'block_catquiz_feedbackwizard/draft_ttl_hours',
+            new lang_string('settings:draft_ttl_hours', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:draft_ttl_hours_desc', 'block_catquiz_feedbackwizard'),
+            72,
+            PARAM_INT
+        ));
+
+        $settings->add(new admin_setting_heading(
+            'block_catquiz_feedbackwizard/patterns',
+            new lang_string('settings:patterns', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:patterns_desc', 'block_catquiz_feedbackwizard')
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            'block_catquiz_feedbackwizard/allowed_target_categories',
+            new lang_string('settings:allowed_target_categories', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:allowed_target_categories_desc', 'block_catquiz_feedbackwizard'),
+            '',
+            PARAM_SEQUENCE
+        ));
+
+        $settings->add(new admin_setting_configcheckbox(
+            'block_catquiz_feedbackwizard/pattern_export_include_feedback_texts',
+            new lang_string('settings:pattern_export_include_feedback_texts', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:pattern_export_include_feedback_texts_desc', 'block_catquiz_feedbackwizard'),
+            1
+        ));
     }
 }

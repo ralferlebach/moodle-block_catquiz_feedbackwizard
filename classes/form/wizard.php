@@ -25,6 +25,7 @@
 namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
+use block_catquiz_feedbackwizard\local\service\feature_settings_service;
 use block_catquiz_feedbackwizard\local\service\matching_config_service;
 use block_catquiz_feedbackwizard\local\service\scenario_preset_service;
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
@@ -45,6 +46,9 @@ use moodle_url;
 class wizard extends dynamic_form {
     /** @var int Number of wizard steps. */
     const MAXSTEPS = 6;
+
+    /** @var array|null Cached draft state for the current request. */
+    protected $draftstatecache = null;
 
     /**
      * Return context for the current submission.
@@ -95,8 +99,9 @@ class wizard extends dynamic_form {
         $sourcetestid = $this->optional_param('sourcetestid', 0, PARAM_INT);
         $recordid = $wizardmode === 'clone' ? $sourcetestid : $testid;
 
+        $courseid = $this->optional_param('courseid', 0, PARAM_INT);
         if ($recordid > 0 && in_array($wizardmode, ['edit', 'clone'], true)) {
-            $record = catquiz_data::get_test_by_id($recordid);
+            $record = catquiz_data::get_test_by_id($recordid, $courseid);
             if ($record) {
                 $sourceid = $wizardmode === 'clone' ? $recordid : 0;
                 $defaults = test_config_normalizer::build_wizard_defaults($record, $wizardmode, $sourceid);
@@ -213,7 +218,7 @@ class wizard extends dynamic_form {
         );
         $mform->setType('wizardmode', PARAM_ALPHA);
 
-        $selectedtest = $this->optional_param('selectedtest', 0, PARAM_INT);
+        $selectedtest = (int)$this->get_state_value('selectedtest', 0, PARAM_INT);
         $candidates = catquiz_data::get_clone_candidates($courseid, $selectedtest);
         $cloneoptions = [0 => get_string('choosedots')];
         foreach ($candidates as $candidate) {
@@ -279,7 +284,7 @@ class wizard extends dynamic_form {
         );
         $mform->setType('mainscaleid', PARAM_INT);
 
-        $mainscaleid = $this->optional_param('mainscaleid', 0, PARAM_INT);
+        $mainscaleid = (int)$this->get_state_value('mainscaleid', 0, PARAM_INT);
         $subscaleoptions = catquiz_data::get_subscale_options($mainscaleid);
         if (!empty($subscaleoptions)) {
             $select = $mform->addElement(
@@ -417,6 +422,23 @@ class wizard extends dynamic_form {
             get_string('message:feedbacktokeninfo', 'block_catquiz_feedbackwizard')
         );
 
+        if (!feature_settings_service::is_course_provisioning_enabled()) {
+            $mform->addElement(
+                'static',
+                'courseprovisioningdisabled',
+                '',
+                get_string('message:courseprovisioningdisabled', 'block_catquiz_feedbackwizard')
+            );
+        }
+        if (!feature_settings_service::is_group_autocreate_enabled()) {
+            $mform->addElement(
+                'static',
+                'groupautocreatedisabled',
+                '',
+                get_string('message:groupautocreatedisabled', 'block_catquiz_feedbackwizard')
+            );
+        }
+
         $rangecount = (int)$feedbackdefaults['feedbackrangecount'];
         for ($index = 1; $index <= $rangecount; $index++) {
             $mform->addElement(
@@ -474,60 +496,175 @@ class wizard extends dynamic_form {
                 $feedbackdefaults['feedbacktemplateformat_' . $index] ?? 'mustache'
             );
 
-            $mform->addElement(
-                'advcheckbox',
-                'feedbackactioncourseenabled_' . $index,
-                get_string('field:feedbackactioncourseenabled', 'block_catquiz_feedbackwizard', $index)
-            );
-            $mform->setType('feedbackactioncourseenabled_' . $index, PARAM_INT);
-            $mform->setDefault(
-                'feedbackactioncourseenabled_' . $index,
-                $feedbackdefaults['feedbackactioncourseenabled_' . $index] ?? 0
-            );
+            if (feature_settings_service::is_course_provisioning_enabled()) {
+                $mform->addElement(
+                    'advcheckbox',
+                    'feedbackactioncourseenabled_' . $index,
+                    get_string('field:feedbackactioncourseenabled', 'block_catquiz_feedbackwizard', $index)
+                );
+                $mform->setType('feedbackactioncourseenabled_' . $index, PARAM_INT);
+                $mform->setDefault(
+                    'feedbackactioncourseenabled_' . $index,
+                    $feedbackdefaults['feedbackactioncourseenabled_' . $index] ?? 0
+                );
 
-            $mform->addElement(
-                'text',
-                'feedbackactioncoursetarget_' . $index,
-                get_string('field:feedbackactioncoursetarget', 'block_catquiz_feedbackwizard', $index)
-            );
-            $mform->setType('feedbackactioncoursetarget_' . $index, PARAM_TEXT);
-            $mform->setDefault(
-                'feedbackactioncoursetarget_' . $index,
-                $feedbackdefaults['feedbackactioncoursetarget_' . $index] ?? ''
-            );
-            $mform->disabledIf(
-                'feedbackactioncoursetarget_' . $index,
-                'feedbackactioncourseenabled_' . $index,
-                'notchecked'
-            );
+                $mform->addElement(
+                    'text',
+                    'feedbackactioncoursetarget_' . $index,
+                    get_string('field:feedbackactioncoursetarget', 'block_catquiz_feedbackwizard', $index)
+                );
+                $mform->setType('feedbackactioncoursetarget_' . $index, PARAM_TEXT);
+                $mform->setDefault(
+                    'feedbackactioncoursetarget_' . $index,
+                    $feedbackdefaults['feedbackactioncoursetarget_' . $index] ?? ''
+                );
+                $mform->disabledIf(
+                    'feedbackactioncoursetarget_' . $index,
+                    'feedbackactioncourseenabled_' . $index,
+                    'notchecked'
+                );
+            }
 
-            $mform->addElement(
-                'advcheckbox',
-                'feedbackactiongroupenabled_' . $index,
-                get_string('field:feedbackactiongroupenabled', 'block_catquiz_feedbackwizard', $index)
-            );
-            $mform->setType('feedbackactiongroupenabled_' . $index, PARAM_INT);
-            $mform->setDefault(
-                'feedbackactiongroupenabled_' . $index,
-                $feedbackdefaults['feedbackactiongroupenabled_' . $index] ?? 0
-            );
+            if (feature_settings_service::is_group_autocreate_enabled()) {
+                $mform->addElement(
+                    'advcheckbox',
+                    'feedbackactiongroupenabled_' . $index,
+                    get_string('field:feedbackactiongroupenabled', 'block_catquiz_feedbackwizard', $index)
+                );
+                $mform->setType('feedbackactiongroupenabled_' . $index, PARAM_INT);
+                $mform->setDefault(
+                    'feedbackactiongroupenabled_' . $index,
+                    $feedbackdefaults['feedbackactiongroupenabled_' . $index] ?? 0
+                );
 
-            $mform->addElement(
-                'text',
-                'feedbackactiongrouptarget_' . $index,
-                get_string('field:feedbackactiongrouptarget', 'block_catquiz_feedbackwizard', $index)
-            );
-            $mform->setType('feedbackactiongrouptarget_' . $index, PARAM_TEXT);
-            $mform->setDefault(
-                'feedbackactiongrouptarget_' . $index,
-                $feedbackdefaults['feedbackactiongrouptarget_' . $index] ?? ''
-            );
-            $mform->disabledIf(
-                'feedbackactiongrouptarget_' . $index,
-                'feedbackactiongroupenabled_' . $index,
-                'notchecked'
-            );
+                $mform->addElement(
+                    'text',
+                    'feedbackactiongrouptarget_' . $index,
+                    get_string('field:feedbackactiongrouptarget', 'block_catquiz_feedbackwizard', $index)
+                );
+                $mform->setType('feedbackactiongrouptarget_' . $index, PARAM_TEXT);
+                $mform->setDefault(
+                    'feedbackactiongrouptarget_' . $index,
+                    $feedbackdefaults['feedbackactiongrouptarget_' . $index] ?? ''
+                );
+                $mform->disabledIf(
+                    'feedbackactiongrouptarget_' . $index,
+                    'feedbackactiongroupenabled_' . $index,
+                    'notchecked'
+                );
+            }
         }
+    }
+
+    /**
+     * Add the matching step.
+     *
+     * @param \MoodleQuickForm $mform
+     * @return void
+     */
+    protected function add_matching_step(\MoodleQuickForm $mform): void {
+        $mform->addElement('header', 'step5header', get_string('step05:title', 'block_catquiz_feedbackwizard'));
+        $mform->addElement('static', 'step5description', '', get_string('step05:description', 'block_catquiz_feedbackwizard'));
+
+        $defaults = test_config_normalizer::build_matching_defaults($this->load_draft_state());
+
+        $mform->addElement(
+            'select',
+            'matchingmode',
+            get_string('field:matchingmode', 'block_catquiz_feedbackwizard'),
+            [
+                'none' => get_string('matchingmode:none', 'block_catquiz_feedbackwizard'),
+                'rule' => get_string('matchingmode:rule', 'block_catquiz_feedbackwizard'),
+                'csv' => get_string('matchingmode:csv', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('matchingmode', PARAM_ALPHA);
+        $mform->setDefault('matchingmode', $defaults['matchingmode']);
+
+        $mform->addElement(
+            'select',
+            'matchingcategoryid',
+            get_string('field:matchingcategoryid', 'block_catquiz_feedbackwizard'),
+            catquiz_data::get_course_category_options()
+        );
+        $mform->setType('matchingcategoryid', PARAM_INT);
+        $mform->setDefault('matchingcategoryid', $defaults['matchingcategoryid']);
+        $mform->hideIf('matchingcategoryid', 'matchingmode', 'eq', 'none');
+
+        $mform->addElement(
+            'select',
+            'matchingcoursefield',
+            get_string('field:matchingcoursefield', 'block_catquiz_feedbackwizard'),
+            [
+                'shortname' => get_string('matchingcoursefield:shortname', 'block_catquiz_feedbackwizard'),
+                'fullname' => get_string('matchingcoursefield:fullname', 'block_catquiz_feedbackwizard'),
+                'idnumber' => get_string('matchingcoursefield:idnumber', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('matchingcoursefield', PARAM_ALPHA);
+        $mform->setDefault('matchingcoursefield', $defaults['matchingcoursefield']);
+        $mform->hideIf('matchingcoursefield', 'matchingmode', 'neq', 'rule');
+
+        $mform->addElement(
+            'select',
+            'matchingoperator',
+            get_string('field:matchingoperator', 'block_catquiz_feedbackwizard'),
+            [
+                'contains' => get_string('matchingoperator:contains', 'block_catquiz_feedbackwizard'),
+                'startswith' => get_string('matchingoperator:startswith', 'block_catquiz_feedbackwizard'),
+                'equals' => get_string('matchingoperator:equals', 'block_catquiz_feedbackwizard'),
+                'regex' => get_string('matchingoperator:regex', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('matchingoperator', PARAM_ALPHA);
+        $mform->setDefault('matchingoperator', $defaults['matchingoperator']);
+        $mform->hideIf('matchingoperator', 'matchingmode', 'neq', 'rule');
+
+        $mform->addElement('text', 'matchingpattern', get_string('field:matchingpattern', 'block_catquiz_feedbackwizard'));
+        $mform->setType('matchingpattern', PARAM_TEXT);
+        $mform->setDefault('matchingpattern', $defaults['matchingpattern']);
+        $mform->hideIf('matchingpattern', 'matchingmode', 'neq', 'rule');
+
+        $mform->addElement(
+            'select',
+            'matchingtargettype',
+            get_string('field:matchingtargettype', 'block_catquiz_feedbackwizard'),
+            [
+                'catscale' => get_string('matchingtargettype:catscale', 'block_catquiz_feedbackwizard'),
+                'course' => get_string('matchingtargettype:course', 'block_catquiz_feedbackwizard'),
+                'group' => get_string('matchingtargettype:group', 'block_catquiz_feedbackwizard'),
+            ]
+        );
+        $mform->setType('matchingtargettype', PARAM_ALPHA);
+        $mform->setDefault('matchingtargettype', $defaults['matchingtargettype']);
+        $mform->hideIf('matchingtargettype', 'matchingmode', 'neq', 'rule');
+
+        $mform->addElement(
+            'text',
+            'matchingtargetvalue',
+            get_string('field:matchingtargetvalue', 'block_catquiz_feedbackwizard')
+        );
+        $mform->setType('matchingtargetvalue', PARAM_TEXT);
+        $mform->setDefault('matchingtargetvalue', $defaults['matchingtargetvalue']);
+        $mform->hideIf('matchingtargetvalue', 'matchingmode', 'neq', 'rule');
+
+        $mform->addElement(
+            'static',
+            'matchingcsvinfo',
+            '',
+            get_string('message:matchingcsvtemplate', 'block_catquiz_feedbackwizard')
+        );
+        $mform->hideIf('matchingcsvinfo', 'matchingmode', 'neq', 'csv');
+
+        $mform->addElement(
+            'textarea',
+            'matchingcsv',
+            get_string('field:matchingcsv', 'block_catquiz_feedbackwizard'),
+            ['rows' => 8, 'cols' => 80]
+        );
+        $mform->setType('matchingcsv', PARAM_RAW);
+        $mform->setDefault('matchingcsv', $defaults['matchingcsv']);
+        $mform->hideIf('matchingcsv', 'matchingmode', 'neq', 'csv');
     }
 
     /**
@@ -557,14 +694,28 @@ class wizard extends dynamic_form {
     public function validation($data, $files): array {
         $errors = [];
         $step = (int)($data['step'] ?? 1);
+        $courseid = (int)($data['courseid'] ?? 0);
 
         if ($step === 1 && empty($data['selectedtest'])) {
             $errors['selectedtest'] = get_string('required');
         }
 
+        if (
+            !empty($data['selectedtest'])
+            && !catquiz_data::test_belongs_to_course((int)$data['selectedtest'], $courseid)
+        ) {
+            $errors['selectedtest'] = get_string('error:testnotincourse', 'block_catquiz_feedbackwizard');
+        }
+
         if ($step === 2) {
             if (($data['wizardmode'] ?? '') === 'clone' && empty($data['sourcetestid'])) {
                 $errors['sourcetestid'] = get_string('required');
+            }
+            if (
+                !empty($data['sourcetestid'])
+                && !catquiz_data::test_belongs_to_course((int)$data['sourcetestid'], $courseid)
+            ) {
+                $errors['sourcetestid'] = get_string('error:testnotincourse', 'block_catquiz_feedbackwizard');
             }
             if (
                 ($data['wizardmode'] ?? '') === 'clone'
@@ -650,6 +801,21 @@ class wizard extends dynamic_form {
                 if ($upper !== null && $upper !== '') {
                     $previousupper = (float)$upper;
                 }
+
+                if (
+                    !empty($data['feedbackactioncourseenabled_' . $index])
+                    && trim((string)($data['feedbackactioncoursetarget_' . $index] ?? '')) === ''
+                ) {
+                    $errors['feedbackactioncoursetarget_' . $index] =
+                        get_string('error:feedbackactioncoursetargetrequired', 'block_catquiz_feedbackwizard');
+                }
+                if (
+                    !empty($data['feedbackactiongroupenabled_' . $index])
+                    && trim((string)($data['feedbackactiongrouptarget_' . $index] ?? '')) === ''
+                ) {
+                    $errors['feedbackactiongrouptarget_' . $index] =
+                        get_string('error:feedbackactiongrouptargetrequired', 'block_catquiz_feedbackwizard');
+                }
             }
         }
 
@@ -699,6 +865,17 @@ class wizard extends dynamic_form {
         $action = (string)($data->action ?? 'next');
         $selectedtest = (int)($data->selectedtest ?? 0);
 
+        // The capability was checked against $courseid, so every test id we act on
+        // must belong to that same course. Otherwise the wizard would be a way to
+        // read and overwrite CAT configurations of unrelated courses.
+        if ($selectedtest > 0 && !catquiz_data::test_belongs_to_course($selectedtest, $courseid)) {
+            throw new \moodle_exception('error:testnotincourse', 'block_catquiz_feedbackwizard');
+        }
+        $sourcetestid = (int)($data->sourcetestid ?? 0);
+        if ($sourcetestid > 0 && !catquiz_data::test_belongs_to_course($sourcetestid, $courseid)) {
+            throw new \moodle_exception('error:testnotincourse', 'block_catquiz_feedbackwizard');
+        }
+
         if ($draftid > 0) {
             $draft = new draft_persistent($draftid);
         } else {
@@ -723,7 +900,7 @@ class wizard extends dynamic_form {
 
         $tomerge = (array)$data;
         unset($tomerge['step'], $tomerge['draftid'], $tomerge['courseid'], $tomerge['sesskey'], $tomerge['id'], $tomerge['action']);
-        $merged = array_merge($current, $tomerge);
+        $merged = feature_settings_service::sanitise_wizard_state(array_merge($current, $tomerge));
 
         if ($step === 2) {
             $wizardmode = (string)($data->wizardmode ?? 'edit');
@@ -736,7 +913,7 @@ class wizard extends dynamic_form {
                     $merged['testid'] = $selectedtest;
                 }
             } else if ($wizardmode === 'edit' && $selectedtest > 0) {
-                $record = catquiz_data::get_test_by_id($selectedtest);
+                $record = catquiz_data::get_test_by_id($selectedtest, $courseid);
                 if ($record) {
                     $defaults = test_config_normalizer::build_wizard_defaults($record, 'edit');
                     $merged = array_merge($defaults, $merged);
@@ -744,8 +921,8 @@ class wizard extends dynamic_form {
                     $merged['testid'] = $selectedtest;
                 }
             } else if ($wizardmode === 'clone') {
-                $targetrecord = catquiz_data::get_test_by_id($selectedtest);
-                $sourcerecord = catquiz_data::get_test_by_id((int)($data->sourcetestid ?? 0));
+                $targetrecord = catquiz_data::get_test_by_id($selectedtest, $courseid);
+                $sourcerecord = catquiz_data::get_test_by_id($sourcetestid, $courseid);
                 if ($targetrecord && $sourcerecord) {
                     $targetdefaults = test_config_normalizer::build_wizard_defaults($targetrecord, 'clone', (int)$sourcerecord->id);
                     $sourcedefaults = test_config_normalizer::build_wizard_defaults($sourcerecord, 'clone', (int)$sourcerecord->id);
@@ -784,6 +961,10 @@ class wizard extends dynamic_form {
             ];
         }
 
+        require_capability(
+            'block/catquiz_feedbackwizard:writeconfig',
+            $this->get_context_for_dynamic_submission()
+        );
         test_config_writer::write_to_test($selectedtest, $merged);
         $draft->set('status', 'submitted');
         $draft->set('timemodified', time());
@@ -1028,14 +1209,46 @@ class wizard extends dynamic_form {
      * @return array
      */
     protected function load_draft_state(): array {
+        if ($this->draftstatecache !== null) {
+            return $this->draftstatecache;
+        }
+
         $draftid = $this->optional_param('draftid', 0, PARAM_INT);
         if ($draftid < 1) {
-            return [];
+            $this->draftstatecache = [];
+            return $this->draftstatecache;
         }
 
         $draft = new draft_persistent($draftid);
         $data = json_decode((string)$draft->get('datajson'), true);
-        return is_array($data) ? $data : [];
+        $this->draftstatecache = is_array($data) ? $data : [];
+        return $this->draftstatecache;
+    }
+
+    /**
+     * Return one wizard state value.
+     *
+     * The modal only carries courseid, step and draftid as request arguments, so
+     * values collected in earlier steps have to be read back from the draft when
+     * the form definition is built.
+     *
+     * @param string $name Wizard state key.
+     * @param mixed $default Value used when neither request nor draft carry the key.
+     * @param string $type A PARAM_* constant used for the request lookup.
+     * @return mixed
+     */
+    protected function get_state_value(string $name, $default, string $type) {
+        $submitted = $this->optional_param($name, null, $type);
+        if ($submitted !== null && $submitted !== '') {
+            return $submitted;
+        }
+
+        $state = $this->load_draft_state();
+        if (array_key_exists($name, $state) && $state[$name] !== '') {
+            return $state[$name];
+        }
+
+        return $default;
     }
 
     /**
