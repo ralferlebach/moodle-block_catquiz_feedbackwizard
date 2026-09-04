@@ -25,6 +25,7 @@
 namespace block_catquiz_feedbackwizard\form;
 
 use block_catquiz_feedbackwizard\catquiz_data;
+use block_catquiz_feedbackwizard\local\service\ai_feedback_service;
 use block_catquiz_feedbackwizard\local\service\feature_settings_service;
 use block_catquiz_feedbackwizard\local\service\matching_config_service;
 use block_catquiz_feedbackwizard\local\service\pattern_export_service;
@@ -462,6 +463,8 @@ class wizard extends dynamic_form {
             );
         }
 
+        $this->add_ai_refinement_elements($mform);
+
         $rangecount = (int)$feedbackdefaults['feedbackrangecount'];
         for ($index = 1; $index <= $rangecount; $index++) {
             $mform->addElement(
@@ -577,6 +580,58 @@ class wizard extends dynamic_form {
                 );
             }
         }
+    }
+
+    /**
+     * Add the optional AI refinement controls to the feedback step.
+     *
+     * @param \MoodleQuickForm $mform
+     * @return void
+     */
+    protected function add_ai_refinement_elements(\MoodleQuickForm $mform): void {
+        if (!feature_settings_service::is_ai_refinement_enabled()) {
+            return;
+        }
+
+        $mform->addElement(
+            'header',
+            'airefinementheader',
+            get_string('field:airefinementheader', 'block_catquiz_feedbackwizard')
+        );
+
+        if (!ai_feedback_service::is_available()) {
+            $mform->addElement(
+                'static',
+                'airefinementunavailable',
+                '',
+                get_string('message:airefinementunavailable', 'block_catquiz_feedbackwizard')
+            );
+            return;
+        }
+
+        $mform->addElement(
+            'advcheckbox',
+            'useairefinement',
+            get_string('field:useairefinement', 'block_catquiz_feedbackwizard')
+        );
+        $mform->setType('useairefinement', PARAM_INT);
+        $mform->setDefault('useairefinement', 0);
+
+        $mform->addElement(
+            'textarea',
+            'aiinstructions',
+            get_string('field:aiinstructions', 'block_catquiz_feedbackwizard'),
+            ['rows' => 3, 'cols' => 80]
+        );
+        $mform->setType('aiinstructions', PARAM_TEXT);
+        $mform->disabledIf('aiinstructions', 'useairefinement', 'notchecked');
+
+        $mform->addElement(
+            'static',
+            'airefinementinfo',
+            '',
+            get_string('message:airefinementinfo', 'block_catquiz_feedbackwizard')
+        );
     }
 
     /**
@@ -997,6 +1052,15 @@ class wizard extends dynamic_form {
             }
         }
 
+        if ($step === 4 && !empty($merged['useairefinement'])) {
+            $merged = ai_feedback_service::refine_wizard_state(
+                $merged,
+                (int)$USER->id,
+                $this->get_context_for_dynamic_submission()->id
+            );
+            $merged['aimessages'] = ai_feedback_service::get_messages();
+        }
+
         $draft->set('testid', $selectedtest);
         $draft->set('datajson', json_encode($merged));
         $draft->set('step', $step);
@@ -1096,6 +1160,11 @@ class wizard extends dynamic_form {
 
         foreach ((array)($data['patternwarnings'] ?? []) as $warning) {
             $summary[] = get_string('field:reviewwarning', 'block_catquiz_feedbackwizard') . ': ' . s((string)$warning);
+        }
+
+        foreach ((array)($data['aimessages'] ?? []) as $message) {
+            $summary[] = get_string('field:airefinementheader', 'block_catquiz_feedbackwizard') . ': ' .
+                s((string)$message);
         }
 
         foreach ($this->build_review_warnings($data) as $warning) {

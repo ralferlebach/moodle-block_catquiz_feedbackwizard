@@ -327,6 +327,7 @@ Quellcode nachsehen. Die Testumgebungs-API steht in
 | „max_input_vars must be at least 5000" | PHP-Default 1000 nicht erhöht |
 | Block lässt sich nicht installieren, „requires … local_catquiz" | Engine fehlt; siehe Abschnitt 11 |
 | `local_catquiz_adapter_test` wird übersprungen | Engine fehlt; der Schreibpfad ist dann ungeprüft |
+| KI-Abschnitt in Schritt 4 fehlt trotz aktivem Setting | kein `core_ai`-Provider für `generate_text` konfiguriert |
 | Nur ein `catquiz`-Verzeichnis im Engine-Ordner | voller Komponentenname als Verzeichnisname nötig |
 | `composer: command not found` | Composer ist nicht vorinstalliert; siehe Abschnitt 7 |
 | Composer meldet „plugins have been disabled for safety" | `COMPOSER_ALLOW_SUPERUSER=1` fehlt |
@@ -336,14 +337,14 @@ Quellcode nachsehen. Die Testumgebungs-API steht in
 ## 13. Protokoll des Referenzlaufs
 
 Durchlaufen am 2026-09-04 auf einem frischen Ubuntu-24.04-Container gegen
-`block_catquiz_feedbackwizard` 0.4.5 und Moodle 4.5.13+ (Build 20260903),
+`block_catquiz_feedbackwizard` 0.4.6 und Moodle 4.5.13+ (Build 20260903),
 PHP 8.3.6, PostgreSQL 16.15.
 
 Installierte Komponenten:
 
 | Komponente | Version |
 |---|---|
-| `block_catquiz_feedbackwizard` | 2026090405 |
+| `block_catquiz_feedbackwizard` | 2026090406 |
 | `mod_adaptivequiz` | 2026082705 |
 | `adaptivequizcatmodel_catquiz` | 2026082704 |
 | `local_catquiz` | 2026083025 |
@@ -353,7 +354,7 @@ Ergebnis der fünf Gates:
 
 | Gate | Ergebnis |
 |---|---|
-| PHPUnit | 36 Tests, 180 Assertions, alle grün |
+| PHPUnit | 43 Tests, 196 Assertions, alle grün |
 | phpcs (Moodle-Standard) | 4 Fehler gefunden, per `phpcbf` behoben, danach sauber |
 | PHPDoc (moodlecheck) | 1 Fehler gefunden und behoben, danach sauber |
 | AMD-Bundle | Neubau identisch zum eingecheckten Stand |
