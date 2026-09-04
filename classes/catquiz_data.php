@@ -105,6 +105,7 @@ class catquiz_data {
      * Return a single CAT test record.
      *
      * @param int $testid
+     * @param int $courseid Restrict the lookup to this course, 0 for no restriction.
      * @return \stdClass|null
      */
     public static function get_test_by_id(int $testid, int $courseid = 0): ?\stdClass {

@@ -65,7 +65,7 @@ class feedback_template_service {
      * @return string
      */
     public static function build_token_help_text(): string {
-        $tokens = array_map(static function(string $token): string {
+        $tokens = array_map(static function (string $token): string {
             return '{{' . $token . '}}';
         }, self::get_supported_tokens());
 

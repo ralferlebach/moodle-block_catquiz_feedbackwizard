@@ -4,8 +4,11 @@ Diese Anleitung beschreibt eine Umgebung, in der sich
 `block_catquiz_feedbackwizard` vollständig verifizieren lässt: PHPUnit, Behat,
 phpcs und die PHPDoc-Prüfung.
 
-Sie ist von der Anleitung für `local_catquizlab` abgeleitet und um die
-Unterschiede dieses Plugins ergänzt. Der wichtigste Unterschied steht in
+Sie ist von der Anleitung für `local_catquizlab` abgeleitet, um die
+Unterschiede dieses Plugins ergänzt und **auf einem frischen
+Ubuntu-24.04-Container vollständig durchlaufen worden**. Der Protokollstand
+steht in Abschnitt 14; die dort genannten Abweichungen sind bereits in die
+Schritte unten eingearbeitet. Der wichtigste Unterschied steht in
 Abschnitt 11: **dieses Plugin ist ohne die Engine-Plugins nicht
 installierbar.** `local_catquizlab` erkennt die Engine zur Laufzeit und läuft
 auch ohne sie; hier stehen `mod_adaptivequiz`, `adaptivequizcatmodel_catquiz`
@@ -169,9 +172,21 @@ php admin/cli/install_database.php --agree-license \
     --adminpass='Admin123!' --adminemail=admin@example.com \
     --fullname="CATWizard" --shortname="CATWizard"
 
+# Composer ist auf einem nackten Container nicht vorhanden.
+command -v composer || {
+    curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
+    php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+}
+
+export COMPOSER_ALLOW_SUPERUSER=1
 composer install --no-interaction   # PHPUnit, Behat
 php admin/tool/phpunit/cli/init.php
 ```
+
+`COMPOSER_ALLOW_SUPERUSER=1` wird auch für dieses `composer install` gebraucht,
+nicht nur für `composer global` in Abschnitt 8. Ohne die Variable deaktiviert
+Composer als root seine Plugins und meldet das nur als Warnung — der Lauf
+scheint zu gelingen, aber einzelne Pakete werden anders eingerichtet.
 
 `php admin/tool/phpunit/cli/init.php` ist **nach jeder Schemaänderung** des
 Plugins erneut aufzurufen, sonst meldet PHPUnit „environment was initialised
@@ -197,6 +212,18 @@ Das phpcs-Composer-Plugin registriert den `moodle`-Standard. Ohne die
 sniff 'moodle' does not exist" — der Standard ist dann installiert, aber nicht
 angemeldet.
 
+## 8a. Node für den AMD-Build
+
+```bash
+curl -sL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y nodejs
+cd ~/moodle && npm install
+```
+
+Das Ubuntu-Paket `nodejs` aus 24.04 ist für Moodles Grunt-Kette zu alt. `npm
+install` läuft im **Moodle-Wurzelverzeichnis**, nicht im Plugin — die
+Grunt-Konfiguration gehört zu Moodle, nicht zum Plugin.
+
 ## 9. Browser für Behat
 
 ```bash
@@ -221,6 +248,13 @@ supports Chrome version 131" — deshalb der `binary`-Eintrag in
 Die Ubuntu-Pakete `chromium-browser`/`chromium-chromedriver` sind in 24.04 nur
 Snap-Wrapper und in einem Container ohne snapd nutzlos.
 
+**Für dieses Plugin ist Chrome derzeit nicht nötig.** Die beiden Szenarien in
+`tests/behat/wizard_block.feature` tragen kein `@javascript`, laufen also über
+den BrowserKit-Treiber und brauchen nur den PHP-Webserver auf Port 8001.
+Chrome wird erst gebraucht, sobald ein Szenario den Wizard-Modal öffnet — der
+läuft über `core_form/modalform` und damit über JavaScript. Wer solche
+Szenarien ergänzt, braucht die Chrome-Einrichtung oben.
+
 ## 10. Die fünf Gates
 
 ```bash
@@ -242,8 +276,9 @@ git -C blocks/catquiz_feedbackwizard diff --exit-code amd/build/
 # 5. Behat
 cd ~/moodle
 php admin/tool/behat/cli/init.php
-(nohup /tmp/chromedriver-linux64/chromedriver --port=4444 >/tmp/chromedriver.log 2>&1 &)
 (nohup php -S 127.0.0.1:8001 -t ~/moodle >/tmp/webserver.log 2>&1 &)
+# Nur wenn @javascript-Szenarien dabei sind:
+# (nohup /tmp/chromedriver-linux64/chromedriver --port=4444 >/tmp/chromedriver.log 2>&1 &)
 vendor/bin/behat --config ~/moodledata_behat/behatrun/behat/behat.yml \
     --tags @block_catquiz_feedbackwizard
 ```
@@ -293,8 +328,47 @@ Quellcode nachsehen. Die Testumgebungs-API steht in
 | Block lässt sich nicht installieren, „requires … local_catquiz" | Engine fehlt; siehe Abschnitt 11 |
 | `local_catquiz_adapter_test` wird übersprungen | Engine fehlt; der Schreibpfad ist dann ungeprüft |
 | Nur ein `catquiz`-Verzeichnis im Engine-Ordner | voller Komponentenname als Verzeichnisname nötig |
+| `composer: command not found` | Composer ist nicht vorinstalliert; siehe Abschnitt 7 |
+| Composer meldet „plugins have been disabled for safety" | `COMPOSER_ALLOW_SUPERUSER=1` fehlt |
+| `npx grunt` findet keine Tasks | `npm install` im Moodle-Wurzelverzeichnis vergessen, nicht im Plugin |
+| Behat meldet „Connection refused" auf 8001 | PHP-Webserver läuft nicht; `php -S 127.0.0.1:8001 -t ~/moodle` |
 
-## 13. Verhältnis zur CI
+## 13. Protokoll des Referenzlaufs
+
+Durchlaufen am 2026-09-04 auf einem frischen Ubuntu-24.04-Container gegen
+`block_catquiz_feedbackwizard` 0.4.5 und Moodle 4.5.13+ (Build 20260903),
+PHP 8.3.6, PostgreSQL 16.15.
+
+Installierte Komponenten:
+
+| Komponente | Version |
+|---|---|
+| `block_catquiz_feedbackwizard` | 2026090405 |
+| `mod_adaptivequiz` | 2026082705 |
+| `adaptivequizcatmodel_catquiz` | 2026082704 |
+| `local_catquiz` | 2026083025 |
+| `local_wunderbyte_table` | 2026081801 |
+
+Ergebnis der fünf Gates:
+
+| Gate | Ergebnis |
+|---|---|
+| PHPUnit | 36 Tests, 180 Assertions, alle grün |
+| phpcs (Moodle-Standard) | 4 Fehler gefunden, per `phpcbf` behoben, danach sauber |
+| PHPDoc (moodlecheck) | 1 Fehler gefunden und behoben, danach sauber |
+| AMD-Bundle | Neubau identisch zum eingecheckten Stand |
+| Behat | 2 Szenarien, 17 Schritte, alle grün |
+
+Die phpcs-Funde waren dreimal `static function(` ohne Leerzeichen und einmal
+eine doppelte Leerzeile; der PHPDoc-Fund war ein fehlender `@param`-Eintrag
+für den neuen `$courseid`-Parameter von `catquiz_data::get_test_by_id()`.
+
+Wichtig für die Bewertung des PHPUnit-Laufs: `local_catquiz_adapter_test::
+test_save_test_configuration_persists_json` hat sich **nicht** übersprungen,
+sondern ist gegen die installierte Engine gelaufen. Der Schreibpfad über
+`\local_catquiz\testenvironment` ist damit belegt und nicht nur behauptet.
+
+## 14. Verhältnis zur CI
 
 Die beiden Workflows unter `.github/workflows/` bilden dieselben Gates ab:
 

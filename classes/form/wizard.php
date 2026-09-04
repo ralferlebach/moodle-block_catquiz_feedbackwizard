@@ -867,7 +867,6 @@ class wizard extends dynamic_form {
             }
         }
 
-
         if ($step === 5) {
             $matchingmode = matching_config_service::normalise_mode((string)($data['matchingmode'] ?? 'none'));
             if ($matchingmode !== 'none' && empty($data['matchingcategoryid'])) {
@@ -1226,7 +1225,7 @@ class wizard extends dynamic_form {
         $parts[] = '→';
         $parts[] = (string)($data['matchingtargettype'] ?? 'catscale');
         $parts[] = trim((string)($data['matchingtargetvalue'] ?? ''));
-        return implode(' ', array_filter($parts, static function($value): bool {
+        return implode(' ', array_filter($parts, static function ($value): bool {
             return $value !== '';
         }));
     }

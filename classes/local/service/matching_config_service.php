@@ -168,7 +168,7 @@ class matching_config_service {
 
         $expected = ['coursefield', 'operator', 'pattern', 'targettype', 'targetvalue'];
         $actual = array_map(
-            static function(string $value): string {
+            static function (string $value): string {
                 return strtolower(trim($value));
             },
             array_slice($columns, 0, 5)
