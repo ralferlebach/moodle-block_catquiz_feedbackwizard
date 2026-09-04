@@ -95,6 +95,14 @@ if ($hassiteconfig) {
             PARAM_SEQUENCE
         ));
 
+        $settings->add(new admin_setting_configtext(
+            'block_catquiz_feedbackwizard/pattern_import_maxfilesize',
+            new lang_string('settings:pattern_import_maxfilesize', 'block_catquiz_feedbackwizard'),
+            new lang_string('settings:pattern_import_maxfilesize_desc', 'block_catquiz_feedbackwizard'),
+            262144,
+            PARAM_INT
+        ));
+
         $settings->add(new admin_setting_configcheckbox(
             'block_catquiz_feedbackwizard/pattern_export_include_feedback_texts',
             new lang_string('settings:pattern_export_include_feedback_texts', 'block_catquiz_feedbackwizard'),

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="block_catquiz_feedbackwizard">
+    <description>Moodle coding standard for the CATQuiz Settings Wizard block.</description>
+
+    <rule ref="moodle"/>
+
+    <file>.</file>
+
+    <exclude-pattern>*/amd/build/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/.github/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+</ruleset>

@@ -27,6 +27,8 @@ namespace block_catquiz_feedbackwizard\form;
 use block_catquiz_feedbackwizard\catquiz_data;
 use block_catquiz_feedbackwizard\local\service\feature_settings_service;
 use block_catquiz_feedbackwizard\local\service\matching_config_service;
+use block_catquiz_feedbackwizard\local\service\pattern_export_service;
+use block_catquiz_feedbackwizard\local\service\pattern_import_service;
 use block_catquiz_feedbackwizard\local\service\scenario_preset_service;
 use block_catquiz_feedbackwizard\local\service\test_config_normalizer;
 use block_catquiz_feedbackwizard\local\service\test_config_writer;
@@ -214,6 +216,7 @@ class wizard extends dynamic_form {
                 'edit' => get_string('mode:edit', 'block_catquiz_feedbackwizard'),
                 'clone' => get_string('mode:clone', 'block_catquiz_feedbackwizard'),
                 'scenario' => get_string('mode:scenario', 'block_catquiz_feedbackwizard'),
+                'import' => get_string('mode:import', 'block_catquiz_feedbackwizard'),
             ]
         );
         $mform->setType('wizardmode', PARAM_ALPHA);
@@ -263,6 +266,26 @@ class wizard extends dynamic_form {
         );
         $mform->setType('scenario', PARAM_ALPHANUMEXT);
         $mform->disabledIf('scenario', 'wizardmode', 'neq', 'scenario');
+
+        $mform->addElement(
+            'filepicker',
+            'patternfile',
+            get_string('field:patternfile', 'block_catquiz_feedbackwizard'),
+            null,
+            [
+                'maxbytes' => feature_settings_service::get_pattern_import_maxbytes(),
+                'accepted_types' => ['.json'],
+            ]
+        );
+        $mform->hideIf('patternfile', 'wizardmode', 'neq', 'import');
+
+        $mform->addElement(
+            'static',
+            'patternfileinfo',
+            '',
+            get_string('message:patternimportinfo', 'block_catquiz_feedbackwizard')
+        );
+        $mform->hideIf('patternfileinfo', 'wizardmode', 'neq', 'import');
     }
 
     /**
@@ -682,6 +705,25 @@ class wizard extends dynamic_form {
             get_string('field:reviewsummary', 'block_catquiz_feedbackwizard'),
             $this->build_review_summary()
         );
+
+        $draftid = $this->optional_param('draftid', 0, PARAM_INT);
+        if ($draftid > 0) {
+            $exporturl = new moodle_url('/blocks/catquiz_feedbackwizard/export.php', [
+                'draftid' => $draftid,
+                'courseid' => $this->optional_param('courseid', 0, PARAM_INT),
+                'sesskey' => sesskey(),
+            ]);
+            $mform->addElement(
+                'static',
+                'patternexport',
+                get_string('field:patternexport', 'block_catquiz_feedbackwizard'),
+                html_writer::link(
+                    $exporturl,
+                    get_string('action:downloadpattern', 'block_catquiz_feedbackwizard'),
+                    ['target' => '_blank', 'rel' => 'noopener']
+                )
+            );
+        }
     }
 
     /**
@@ -726,6 +768,12 @@ class wizard extends dynamic_form {
             }
             if (($data['wizardmode'] ?? '') === 'scenario' && empty($data['scenario'])) {
                 $errors['scenario'] = get_string('required');
+            }
+            if (($data['wizardmode'] ?? '') === 'import') {
+                $error = $this->validate_pattern_upload();
+                if ($error !== '') {
+                    $errors['patternfile'] = $error;
+                }
             }
         }
 
@@ -920,6 +968,19 @@ class wizard extends dynamic_form {
                     $merged['selectedtest'] = $selectedtest;
                     $merged['testid'] = $selectedtest;
                 }
+            } else if ($wizardmode === 'import') {
+                $json = (string)$this->get_file_content('patternfile');
+                if ($json !== '') {
+                    $pattern = pattern_import_service::parse($json);
+                    $imported = pattern_import_service::to_wizard_state($pattern);
+                    // Imported values are defaults: anything the user already
+                    // typed in this session keeps precedence.
+                    $merged = array_merge($imported, $merged);
+                    $merged['selectedtest'] = $selectedtest;
+                    $merged['testid'] = $selectedtest;
+                    $merged['patternwarnings'] = pattern_import_service::get_warnings();
+                    $merged['patternname'] = (string)($pattern['meta']['name'] ?? '');
+                }
             } else if ($wizardmode === 'clone') {
                 $targetrecord = catquiz_data::get_test_by_id($selectedtest, $courseid);
                 $sourcerecord = catquiz_data::get_test_by_id($sourcetestid, $courseid);
@@ -1033,6 +1094,10 @@ class wizard extends dynamic_form {
 
         $summary[] = get_string('field:matchingsummary', 'block_catquiz_feedbackwizard') . ': ' .
             s($this->describe_matching_configuration($data));
+
+        foreach ((array)($data['patternwarnings'] ?? []) as $warning) {
+            $summary[] = get_string('field:reviewwarning', 'block_catquiz_feedbackwizard') . ': ' . s((string)$warning);
+        }
 
         foreach ($this->build_review_warnings($data) as $warning) {
             $summary[] = get_string('field:reviewwarning', 'block_catquiz_feedbackwizard') . ': ' . s($warning);
@@ -1201,6 +1266,27 @@ class wizard extends dynamic_form {
                 ($target !== '' ? ' (' . $target . ')' : '');
         }
         return implode(', ', $actions);
+    }
+
+    /**
+     * Validate the uploaded settings pattern.
+     *
+     * @return string An error message, or an empty string when the file is fine.
+     */
+    protected function validate_pattern_upload(): string {
+        $json = (string)$this->get_file_content('patternfile');
+
+        if (trim($json) === '') {
+            return get_string('error:patternfilerequired', 'block_catquiz_feedbackwizard');
+        }
+
+        try {
+            pattern_import_service::parse($json);
+        } catch (\moodle_exception $e) {
+            return $e->getMessage();
+        }
+
+        return '';
     }
 
     /**

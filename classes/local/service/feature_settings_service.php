@@ -43,6 +43,9 @@ class feature_settings_service {
     /** @var int Default lifetime of a wizard draft in hours. */
     const DEFAULT_DRAFT_TTL_HOURS = 72;
 
+    /** @var int Default maximum size of an imported pattern file in bytes. */
+    const DEFAULT_PATTERN_MAXBYTES = 262144;
+
     /**
      * Return one raw plugin config value.
      *
@@ -143,6 +146,19 @@ class feature_settings_service {
             return true;
         }
         return in_array($categoryid, $allowed, true);
+    }
+
+    /**
+     * Return the maximum accepted size of an imported pattern file in bytes.
+     *
+     * @return int
+     */
+    public static function get_pattern_import_maxbytes(): int {
+        $bytes = (int)self::get_setting('pattern_import_maxfilesize', self::DEFAULT_PATTERN_MAXBYTES);
+        if ($bytes < 1) {
+            return self::DEFAULT_PATTERN_MAXBYTES;
+        }
+        return $bytes;
     }
 
     /**
