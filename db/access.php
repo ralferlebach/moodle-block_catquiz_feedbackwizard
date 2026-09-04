@@ -48,4 +48,14 @@ $capabilities = [
             'editingteacher' => CAP_ALLOW,
         ],
     ],
+
+    'block/catquiz_feedbackwizard:writeconfig' => [
+        'riskbitmask' => RISK_CONFIG,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => [
+            'manager' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+        ],
+    ],
 ];

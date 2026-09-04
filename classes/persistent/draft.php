@@ -15,11 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Draft persistent class for catquiz feedback wizard.
- *
- * This file contains the persistent class that handles database operations
- * for draft feedback wizard entries, allowing users to save progress
- * across multiple form steps.
+ * Draft persistent class for the CATQuiz wizard.
  *
  * @package     block_catquiz_feedbackwizard
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
@@ -30,64 +26,51 @@ namespace block_catquiz_feedbackwizard\persistent;
 
 use core\persistent;
 
+
 /**
- * Persistent class for managing draft feedback wizard data.
- *
- * This class extends Moodle's persistent base class to provide
- * database operations for storing and retrieving draft feedback
- * wizard entries during the multi-step form process.
+ * Persistent class for wizard drafts.
  *
  * @package     block_catquiz_feedbackwizard
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class draft extends persistent {
-
-    /**
-     * Database table name for storing draft data.
-     *
-     * @var string TABLE The name of the database table
-     */
+    /** @var string Table name. */
     const TABLE = 'block_catquiz_feedbackwizard';
 
     /**
-     * Define the properties for this persistent class.
+     * Define persistent properties.
      *
-     * Returns an array defining all database fields and their validation
-     * rules for the draft feedback wizard entries.
-     *
-     * @return array Array of property definitions with validation rules
+     * @return array
      */
-    protected static function define_properties() {
+    protected static function define_properties(): array {
         return [
             'userid' => [
                 'type' => PARAM_INT,
             ],
-
             'courseid' => [
                 'type' => PARAM_INT,
             ],
-
+            'testid' => [
+                'type' => PARAM_INT,
+                'default' => 0,
+            ],
             'status' => [
                 'type' => PARAM_ALPHA,
                 'default' => 'draft',
             ],
-
             'step' => [
                 'type' => PARAM_INT,
                 'default' => 1,
             ],
-
             'datajson' => [
-                'type' => PARAM_RAW, // JSON string.
+                'type' => PARAM_RAW,
                 'null' => NULL_ALLOWED,
             ],
-
             'timecreated' => [
                 'type' => PARAM_INT,
                 'default' => 0,
             ],
-
             'timemodified' => [
                 'type' => PARAM_INT,
                 'default' => 0,
