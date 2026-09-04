@@ -15,23 +15,24 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Scheduled task definitions.
  *
  * @package     block_catquiz_feedbackwizard
+ * @category    task
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'block_catquiz_feedbackwizard';
-$plugin->release = '0.4.2';
-$plugin->version = 2026090402;
-$plugin->requires = 2024100700;
-$plugin->supported = [405, 501];
-$plugin->dependencies = [
-    'mod_adaptivequiz' => 2026081900,
-    'adaptivequizcatmodel_catquiz' => 2026081900,
-    'local_catquiz' => 2026083025,
+$tasks = [
+    [
+        'classname' => 'block_catquiz_feedbackwizard\task\cleanup_drafts',
+        'blocking' => 0,
+        'minute' => '17',
+        'hour' => '3',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*',
+    ],
 ];
-$plugin->maturity = MATURITY_ALPHA;

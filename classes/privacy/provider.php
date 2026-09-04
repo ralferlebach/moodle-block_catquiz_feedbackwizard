@@ -26,6 +26,8 @@ namespace block_catquiz_feedbackwizard\privacy;
 
 use context;
 use core_privacy\local\metadata\collection;
+use core_privacy\local\request\approved_userlist;
+use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
 /**
@@ -35,7 +37,10 @@ use core_privacy\local\request\writer;
  * @copyright   2025 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class provider implements \core_privacy\local\metadata\provider, \core_privacy\local\request\plugin\provider {
+class provider implements
+    \core_privacy\local\metadata\provider,
+    \core_privacy\local\request\core_userlist_provider,
+    \core_privacy\local\request\plugin\provider {
     /**
      * Get metadata about the data stored by this plugin.
      *
@@ -50,6 +55,7 @@ class provider implements \core_privacy\local\metadata\provider, \core_privacy\l
                 'courseid' => 'privacy:metadata:block_catquiz_feedbackwizard:courseid',
                 'datajson' => 'privacy:metadata:block_catquiz_feedbackwizard:datajson',
                 'testid' => 'privacy:metadata:block_catquiz_feedbackwizard:testid',
+                'status' => 'privacy:metadata:block_catquiz_feedbackwizard:status',
             ],
             'privacy:metadata:block_catquiz_feedbackwizard'
         );
@@ -141,5 +147,54 @@ class provider implements \core_privacy\local\metadata\provider, \core_privacy\l
                 'courseid' => $context->instanceid,
             ]);
         }
+    }
+
+    /**
+     * Get the list of users who have data within a context.
+     *
+     * @param userlist $userlist The userlist containing the list of users.
+     * @return void
+     */
+    public static function get_users_in_context(userlist $userlist): void {
+        $context = $userlist->get_context();
+
+        if ($context->contextlevel != CONTEXT_COURSE) {
+            return;
+        }
+
+        $sql = "SELECT userid
+                  FROM {block_catquiz_feedbackwizard}
+                 WHERE courseid = ?";
+        $userlist->add_from_sql('userid', $sql, [$context->instanceid]);
+    }
+
+    /**
+     * Delete multiple users within a single context.
+     *
+     * @param approved_userlist $userlist The approved context and user information to delete information for.
+     * @return void
+     */
+    public static function delete_data_for_users(approved_userlist $userlist): void {
+        global $DB;
+
+        $context = $userlist->get_context();
+
+        if ($context->contextlevel != CONTEXT_COURSE) {
+            return;
+        }
+
+        $userids = $userlist->get_userids();
+        if (empty($userids)) {
+            return;
+        }
+
+        [$insql, $inparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        $params = array_merge($inparams, ['courseid' => $context->instanceid]);
+
+        $DB->delete_records_select(
+            'block_catquiz_feedbackwizard',
+            "courseid = :courseid AND userid {$insql}",
+            $params
+        );
     }
 }

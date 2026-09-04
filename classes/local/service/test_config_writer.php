@@ -25,6 +25,7 @@
 namespace block_catquiz_feedbackwizard\local\service;
 
 use block_catquiz_feedbackwizard\catquiz_data;
+use block_catquiz_feedbackwizard\local\adapter\local_catquiz_adapter;
 
 /**
  * Writes wizard state back into local_catquiz_tests.
@@ -42,8 +43,6 @@ class test_config_writer {
      * @return void
      */
     public static function write_to_test(int $testid, array $wizardstate): void {
-        global $DB;
-
         $record = catquiz_data::get_test_by_id($testid);
         if (!$record) {
             throw new \moodle_exception('invalidrecord', 'error');
@@ -62,15 +61,11 @@ class test_config_writer {
         }
 
         $jsondata = self::apply_wizard_state($basejson, $wizardstate);
-        $update = (object)[
-            'id' => $testid,
-            'catscaleid' => !empty($wizardstate['mainscaleid'])
-                ? (int)$wizardstate['mainscaleid']
-                : (int)($record->catscaleid ?? 0),
-            'json' => json_encode($jsondata),
-            'timemodified' => time(),
-        ];
-        $DB->update_record('local_catquiz_tests', $update);
+        $catscaleid = !empty($wizardstate['mainscaleid'])
+            ? (int)$wizardstate['mainscaleid']
+            : (int)($record->catscaleid ?? 0);
+
+        local_catquiz_adapter::save_test_configuration($testid, $jsondata, $catscaleid);
     }
 
     /**
