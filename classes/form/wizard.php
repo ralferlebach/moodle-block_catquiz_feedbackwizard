@@ -965,18 +965,6 @@ class wizard extends dynamic_form {
         $courseid = (int)($data->courseid ?? 0);
         $draftid = (int)($data->draftid ?? 0);
         $action = (string)($data->action ?? 'next');
-        $selectedtest = (int)($data->selectedtest ?? 0);
-
-        // The capability was checked against $courseid, so every test id we act on
-        // must belong to that same course. Otherwise the wizard would be a way to
-        // read and overwrite CAT configurations of unrelated courses.
-        if ($selectedtest > 0 && !catquiz_data::test_belongs_to_course($selectedtest, $courseid)) {
-            throw new \moodle_exception('error:testnotincourse', 'block_catquiz_feedbackwizard');
-        }
-        $sourcetestid = (int)($data->sourcetestid ?? 0);
-        if ($sourcetestid > 0 && !catquiz_data::test_belongs_to_course($sourcetestid, $courseid)) {
-            throw new \moodle_exception('error:testnotincourse', 'block_catquiz_feedbackwizard');
-        }
 
         if ($draftid > 0) {
             $draft = new draft_persistent($draftid);
@@ -984,7 +972,7 @@ class wizard extends dynamic_form {
             $draft = new draft_persistent(0, (object)[
                 'userid' => (int)$USER->id,
                 'courseid' => $courseid,
-                'testid' => $selectedtest,
+                'testid' => 0,
                 'status' => 'draft',
                 'step' => $step,
                 'timecreated' => time(),
@@ -1003,6 +991,22 @@ class wizard extends dynamic_form {
         $tomerge = (array)$data;
         unset($tomerge['step'], $tomerge['draftid'], $tomerge['courseid'], $tomerge['sesskey'], $tomerge['id'], $tomerge['action']);
         $merged = feature_settings_service::sanitise_wizard_state(array_merge($current, $tomerge));
+
+        // The test ids have to come from the merged state, not from the submitted
+        // form: the selection fields only exist in step 1, so from step 2 onwards
+        // the request carries no test id at all.
+        $selectedtest = (int)($merged['selectedtest'] ?? 0);
+        $sourcetestid = (int)($merged['sourcetestid'] ?? 0);
+
+        // The capability was checked against $courseid, so every test id we act on
+        // must belong to that same course. Otherwise the wizard would be a way to
+        // read and overwrite CAT configurations of unrelated courses.
+        if ($selectedtest > 0 && !catquiz_data::test_belongs_to_course($selectedtest, $courseid)) {
+            throw new \moodle_exception('error:testnotincourse', 'block_catquiz_feedbackwizard');
+        }
+        if ($sourcetestid > 0 && !catquiz_data::test_belongs_to_course($sourcetestid, $courseid)) {
+            throw new \moodle_exception('error:testnotincourse', 'block_catquiz_feedbackwizard');
+        }
 
         if ($step === 2) {
             $wizardmode = (string)($data->wizardmode ?? 'edit');

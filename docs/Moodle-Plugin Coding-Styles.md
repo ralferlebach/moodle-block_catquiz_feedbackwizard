@@ -1,6 +1,6 @@
 # Moodle Plugin Coding Styles — `block_catquiz_feedbackwizard`
 
-Diese Regeln gelten als projektspezifischer Standard für die Weiterentwicklung des CATQuiz Settings Wizard.
+Diese Regeln gelten als projektspezifischer Standard für die Weiterentwicklung des CATQuiz Wizard.
 
 ## 1. Grundprinzipien
 
@@ -12,7 +12,7 @@ Diese Regeln gelten als projektspezifischer Standard für die Weiterentwicklung 
 
 ## 2. Terminologie
 
-- **UI-/Doku-Begriff:** `CATQuiz Settings Wizard`
+- **UI-/Doku-Begriff:** `CATQuiz Wizard` (entspricht `$string['pluginname']`)
 - **Technischer Komponentenname:** `block_catquiz_feedbackwizard`
 - In neuen Nutzertexten kein „Feedback Wizard“ mehr verwenden.
 - In Code-Kommentaren nur dann „feedback wizard“, wenn ausdrücklich historischer Ist-Stand beschrieben wird.
@@ -89,7 +89,7 @@ Diese Regeln gelten als projektspezifischer Standard für die Weiterentwicklung 
 
 Vor jeder Auslieferung prüfen:
 
-- Wurde „Settings Wizard“ in neuen UI-Strings korrekt verwendet?
+- Wurde „CATQuiz Wizard“ in neuen UI-Strings korrekt verwendet?
 - Liegt Fachlogik außerhalb von Block-Klasse und Template?
 - Sind optionale Features durch Settings geschützt?
 - Speichern wir neue personenbezogene Daten? Falls ja: warum?

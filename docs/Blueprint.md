@@ -38,124 +38,166 @@
 
 ## 3. Fachliche Wizard-Schritte
 
-### Schritt 1 — Startmodus und Zweck
-- Neu / Übernehmen / Import
-- verständlicher Einsatzzweck
-- Zielkurs / Zielinstanz / Konfigurationsziel
+Sechs Schritte, `MAXSTEPS = 6` in `classes/form/wizard.php`. Die Titel
+entsprechen den Lang-Strings `step01:title` bis `step06:title`.
 
-### Schritt 2 — Fachliche Basis
-- Auswahl einer vorhandenen CAT-Testumgebung oder Vorlage
-- Auswahl von Skala, Kontext, Strategie
-- ggf. Ableitung aus bestehendem Test
+### Schritt 1 — CAT-Test wählen
+- Liste der adaptiven Tests des Kurses
+- Bereitschaftsanzeige je Test (fertig / mit Warnungen / unvollständig)
+- kursgebunden: fremde Test-IDs werden abgewiesen
 
-### Schritt 3 — Feedbackquellen
-- Einlesen von Seriendokumenten / Mustervorlagen
-- Mapping auf Fähigkeits- oder Ergebnisbereiche
-- Validierung fehlender Felder / Platzhalter
+### Schritt 2 — Einrichtungsmodus wählen
+- `edit` — den gewählten Test bearbeiten
+- `clone` — Konfiguration eines anderen Tests desselben Kurses übernehmen
+- `scenario` — mit einer Szenario-Vorlage beginnen
+- `import` — Einstellungsmuster als JSON-Datei einlesen
 
-### Schritt 4 — Anschlussregeln
-- Regeln: Ergebnisbereich → Zielkurs → Zielgruppe
-- Anzeige vorhandener / fehlender Ziele
-- Konfliktprüfung
+### Schritt 3 — Testeinstellungen bearbeiten
+- Hauptskala und Subskalen
+- Fragenzahl, Mindestfragenzahl, Fragen je Subskala
+- Präzisionsmodus, Zeitbegrenzung, Abschlussbedingung
 
-### Schritt 5 — Optionale Automatisierung / KI
-- falls freigeschaltet: Kursanlage / Antrag
-- falls freigeschaltet: Gruppenanlage
-- falls freigeschaltet: KI-Glättung / Variation
+### Schritt 4 — Feedbackbereiche konfigurieren
+- bis zu zehn Bereiche mit Bezeichnung, Grenzen und Text
+- Platzhalter im Text, Templateformat je Bereich
+- Reporting-Strategie
+- **falls freigeschaltet:** Kurs- und Gruppenaktionen je Bereich
+- **falls freigeschaltet:** KI-Glättung der Texte
+
+### Schritt 5 — Anschlussregeln (Matching)
+- Zuordnungsmodus: keine, Einzelregel oder CSV
+- Kursfeld, Operator, Muster, Zieltyp und Zielwert
+- CSV-Variante für mehrere Regeln auf einmal
 
 ### Schritt 6 — Review und Persistenz
-- Zusammenfassung aller Entscheidungen
-- Validierung gegen Zielsystem
-- Speichern in `local_catquiz`
-- optional Export als Muster
+- Zusammenfassung aller Entscheidungen, inklusive Import- und KI-Meldungen
+- Export als Einstellungsmuster
+- Speichern über `local_catquiz_adapter`
 
-## 4. Empfohlene Zielstruktur im Plugin
+### Abweichung vom ursprünglichen Entwurf
+
+Vorgesehen war Schritt 5 als „Optionale Automatisierung / KI" und Schritt 3 als
+„Feedbackquellen" mit Import aus Seriendokumenten. Umgesetzt ist:
+
+- Die Anschlussregeln haben Schritt 5 bekommen, weil sie einen eigenen Schritt
+  brauchen.
+- Die optionalen Funktionen sitzen dort, wo sie wirken: Kurs- und
+  Gruppenaktionen je Feedbackbereich in Schritt 4, die KI-Glättung ebenfalls in
+  Schritt 4, direkt unter den Texten, die sie bearbeitet. Ein siebter Schritt
+  hätte `MAXSTEPS` und die AMD-Navigation angefasst, ohne fachlich etwas zu
+  gewinnen.
+- Der Import aus Seriendokumenten ist nicht umgesetzt.
+  `feedback_template_service` kann Platzhalter ersetzen, aber keine Datei
+  einlesen. Der Musterimport in Schritt 2 ist etwas anderes: er liest eine
+  vollständige Wizard-Konfiguration, keine Textquelle.
+
+## 4. Struktur im Plugin
+
+Der Blueprint hat ursprünglich je eine Klasse pro Wizard-Schritt und einen
+Servicezuschnitt entlang der Fachfunktionen vorgesehen. Umgesetzt ist ein
+anderer Schnitt: die Schritte sind Methoden in `wizard.php`, und die Services
+sind entlang „lesen / normalisieren / schreiben" getrennt statt entlang der
+Fachfunktion. Das ist eine bewusste Entscheidung und keine offene Baustelle —
+der beschriebene Stand unten ist der verbindliche.
 
 ```text
-block/catquiz_feedbackwizard/
-├── amd/src/
+blocks/catquiz_feedbackwizard/
+├── amd/src/main.js              # Modal-Steuerung, Bundle unter amd/build/
 ├── classes/
+│   ├── catquiz_data.php         # Lesezugriff auf die Engine-Tabellen
 │   ├── form/
-│   │   ├── wizard.php
-│   │   └── step/
-│   │       ├── start_step.php
-│   │       ├── source_step.php
-│   │       ├── feedback_step.php
-│   │       ├── routing_step.php
-│   │       ├── automation_step.php
-│   │       └── review_step.php
+│   │   └── wizard.php           # dynamic_form, alle sechs Schritte als Methoden
 │   ├── local/
-│   │   ├── service/
-│   │   │   ├── wizard_state_service.php
-│   │   │   ├── source_clone_service.php
-│   │   │   ├── feedback_template_service.php
-│   │   │   ├── routing_rules_service.php
-│   │   │   ├── course_provisioning_service.php
-│   │   │   ├── group_provisioning_service.php
-│   │   │   ├── ai_feedback_service.php
-│   │   │   ├── pattern_import_service.php
-│   │   │   ├── pattern_export_service.php
-│   │   │   └── finalise_wizard_service.php
 │   │   ├── adapter/
-│   │   │   ├── local_catquiz_adapter.php
-│   │   │   ├── adaptivequiz_adapter.php
-│   │   │   └── ai_provider_adapter.php
-│   │   ├── dto/
-│   │   └── validation/
-│   ├── persistent/
-│   └── privacy/
-├── db/
-├── lang/
-├── templates/
-└── tests/
+│   │   │   ├── local_catquiz_adapter.php   # jeder Schreibzugriff auf die Engine
+│   │   │   └── ai_provider_adapter.php     # core_ai, kein direkter Provider
+│   │   └── service/
+│   │       ├── feature_settings_service.php  # Gating aller optionalen Features
+│   │       ├── test_config_normalizer.php    # Engine-JSON -> Wizard-State
+│   │       ├── test_config_writer.php        # Wizard-State -> Engine-JSON
+│   │       ├── scenario_preset_service.php   # Szenario-Vorlagen
+│   │       ├── feedback_template_service.php # Platzhalter in Feedbacktexten
+│   │       ├── matching_config_service.php   # Routing-Regeln, Regel und CSV
+│   │       ├── pattern_export_service.php    # Einstellungsmuster schreiben
+│   │       ├── pattern_import_service.php    # Einstellungsmuster prüfen und laden
+│   │       ├── ai_feedback_service.php       # optionale Textglättung
+│   │       └── draft_cleanup_service.php     # Aufbewahrung der Entwürfe
+│   ├── persistent/draft.php
+│   ├── privacy/provider.php
+│   └── task/cleanup_drafts.php
+├── db/                          # access.php, install.xml, tasks.php, upgrade.php
+├── docs/dev/environment-setup.md
+├── export.php                   # Download eines Einstellungsmusters
+├── lang/en/
+├── settings.php
+├── templates/block.mustache
+└── tests/                       # PHPUnit und tests/behat/
 ```
+
+Nicht umgesetzt und derzeit auch nicht vorgesehen:
+`course_provisioning_service` und `group_provisioning_service` — die
+zugehörigen Settings und Formularfelder existieren, aber der Wizard schreibt
+die Anschlussaktionen bisher nur in die Konfiguration, ohne selbst Kurse oder
+Gruppen anzulegen. Ebenso fehlt ein `adaptivequiz_adapter`: der Block liest die
+Aktivität nur mit, geschrieben wird ausschließlich über `local_catquiz`.
 
 ## 5. Zentrale Services
 
-### 5.1 `source_clone_service`
-Verantwortung:
-- bestehende CAT-Konfiguration lesen,
-- berechtigte Vorlagenlisten aufbauen,
-- Konfiguration in Wizard-DTO überführen.
+Die Namen unten sind die tatsächlichen. Der ursprüngliche Zuschnitt
+(`source_clone_service`, `routing_rules_service`, `wizard_state_service`,
+`finalise_wizard_service`) ist aufgegangen in einem Schnitt entlang
+„lesen / normalisieren / schreiben".
 
-### 5.2 `feedback_template_service`
-Verantwortung:
-- Serienquellen lesen,
-- Platzhalter prüfen,
-- Ergebnisbereich-Mapping auflösen,
-- generierte Feedbacktexte vorbereiten.
+### 5.1 `test_config_normalizer`
+- Engine-JSON in einen flachen Wizard-State überführen,
+- Vorgabewerte für Feedbackbereiche und Matching berechnen,
+- Werte aus untrusted Quellen normalisieren.
+Ersetzt den vorgesehenen `source_clone_service` und `wizard_state_service`.
 
-### 5.3 `routing_rules_service`
-Verantwortung:
-- Regeln für Kurs-/Gruppenzuordnung modellieren,
-- Zielobjekte validieren,
-- Konflikte melden,
-- finale Routing-Daten für Persistenz erzeugen.
+### 5.2 `test_config_writer`
+- Wizard-State auf die Engine-JSON-Struktur abbilden,
+- Persistenz an `local_catquiz_adapter` übergeben.
+Ersetzt den vorgesehenen `finalise_wizard_service`.
 
-### 5.4 `course_provisioning_service`
-Verantwortung:
-- nur bei aktivem Setting,
-- Existenz von Zielkursen prüfen,
-- Kurse anlegen oder Antragsobjekte erzeugen.
+### 5.3 `feature_settings_service`
+- einziger Lesepunkt für die Admin-Settings,
+- serverseitiges Entfernen von State zu abgeschalteten Features
+  (`sanitise_wizard_state()`).
+Im ursprünglichen Blueprint nicht vorgesehen; ohne diese Bündelung würde jede
+Schrittmethode ihre eigene Gating-Prüfung mitbringen.
 
-### 5.5 `group_provisioning_service`
-Verantwortung:
-- Zielgruppen validieren,
-- fehlende Gruppen anlegen, wenn erlaubt.
+### 5.4 `feedback_template_service`
+- Platzhalter in Feedbacktexten erkennen und ersetzen,
+- Templateformat normalisieren.
+Der im Blueprint genannte Import aus Serienquellen ist nicht umgesetzt.
 
-### 5.6 `ai_feedback_service`
-Verantwortung:
-- nur bei aktivem Setting,
-- Prompt und Textmaterial zusammenführen,
-- datensparsame Nutzlast an KI-Adapter übergeben,
-- Ergebnis protokollfrei oder minimal rückgeben.
+### 5.5 `matching_config_service`
+- Routing-Regeln als Einzelregel oder CSV modellieren,
+- Regeln normalisieren und Unvollständiges verwerfen.
+Ersetzt den vorgesehenen `routing_rules_service`.
 
-### 5.7 `finalise_wizard_service`
-Verantwortung:
-- Gesamtkonfiguration prüfen,
-- in Zielstruktur für `local_catquiz` überführen,
-- Persistenz orchestrieren,
-- Exportmuster optional erzeugen.
+### 5.6 `scenario_preset_service`
+- Szenario-Vorlagen für den Startmodus liefern.
+
+### 5.7 `pattern_export_service` / `pattern_import_service`
+- versioniertes Muster schreiben, ohne Instanz- oder Personenbezug,
+- Muster prüfen, Skalenreferenzen gegen die lokale Site auflösen,
+- Abweichungen als Warnungen zurückgeben statt still zu korrigieren.
+
+### 5.8 `ai_feedback_service`
+- nur bei aktivem Setting und konfiguriertem `core_ai`-Provider,
+- Prompt aus Systemprompt, Hinweisen und Text zusammensetzen,
+- datensparsame Nutzlast an `ai_provider_adapter` übergeben,
+- Original behalten, wenn die Antwort Platzhalter verliert.
+
+### 5.9 `draft_cleanup_service`
+- Entwürfe nach Ablauf der TTL löschen,
+- abgesendete Entwürfe nach kurzer Karenz löschen.
+
+### Nicht umgesetzt
+`course_provisioning_service` und `group_provisioning_service`. Die Settings
+und die Formularfelder für Kurs- und Gruppenaktionen existieren, aber der
+Wizard schreibt sie bisher nur in die Konfiguration und legt selbst nichts an.
 
 ## 6. Empfohlenes Datenmodell
 

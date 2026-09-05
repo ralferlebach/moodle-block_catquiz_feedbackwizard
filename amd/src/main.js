@@ -1,8 +1,8 @@
 /**
- * CAT Quiz wizard modal controller.
+ * CATQuiz Wizard modal controller.
  *
  * @module     block_catquiz_feedbackwizard/main
- * @copyright  2026 OpenAI
+ * @copyright  2024 Ralf Erlebach <ralf.erlebach@gmx.de>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

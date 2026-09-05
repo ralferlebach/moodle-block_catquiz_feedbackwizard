@@ -356,14 +356,14 @@ Quellcode nachsehen. Die Testumgebungs-API steht in
 ## 13. Protokoll des Referenzlaufs
 
 Durchlaufen am 2026-09-04 auf einem frischen Ubuntu-24.04-Container gegen
-`block_catquiz_feedbackwizard` 0.4.8 und Moodle 4.5.13+ (Build 20260903),
+`block_catquiz_feedbackwizard` 0.4.10 und Moodle 4.5.13+ (Build 20260903),
 PHP 8.3.6, PostgreSQL 16.15.
 
 Installierte Komponenten:
 
 | Komponente | Version |
 |---|---|
-| `block_catquiz_feedbackwizard` | 2026090408 |
+| `block_catquiz_feedbackwizard` | 2026090410 |
 | `mod_adaptivequiz` | 2026082705 |
 | `adaptivequizcatmodel_catquiz` | 2026082704 |
 | `local_catquiz` | 2026083025 |
@@ -387,6 +387,17 @@ Wichtig für die Bewertung des PHPUnit-Laufs: `local_catquiz_adapter_test::
 test_save_test_configuration_persists_json` hat sich **nicht** übersprungen,
 sondern ist gegen die installierte Engine gelaufen. Der Schreibpfad über
 `\local_catquiz\testenvironment` ist damit belegt und nicht nur behauptet.
+
+### Sechste, optionale Prüfung: der interaktive Durchlauf
+
+Die fünf Gates decken den Wizard-Ablauf nicht ab. Behat prüft ohne
+`@javascript` nur, ob der Einstiegspunkt erscheint; der Wizard selbst läuft
+über `core_form/modalform` und damit über JavaScript.
+
+`tests/e2e/` enthält ein Playwright-Harness, das den Wizard einmal komplett
+durchfährt. Es läuft nicht in der CI und ist kein Gate, hat aber zwei Fehler
+gefunden, die alle fünf Gates überlebt hatten. Details in
+`tests/e2e/README.md`.
 
 ### Grenzen dieses Laufs
 
