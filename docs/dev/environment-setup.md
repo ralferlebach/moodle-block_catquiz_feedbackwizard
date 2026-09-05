@@ -328,6 +328,7 @@ Quellcode nachsehen. Die Testumgebungs-API steht in
 | Block lässt sich nicht installieren, „requires … local_catquiz" | Engine fehlt; siehe Abschnitt 11 |
 | `local_catquiz_adapter_test` wird übersprungen | Engine fehlt; der Schreibpfad ist dann ungeprüft |
 | KI-Abschnitt in Schritt 4 fehlt trotz aktivem Setting | kein `core_ai`-Provider für `generate_text` konfiguriert |
+| PHPUnit lokal grün, CI nur unter PHP 8.4 rot | PHP-Deprecation; lokal mit `--fail-on-warning` gegenprüfen |
 | Nur ein `catquiz`-Verzeichnis im Engine-Ordner | voller Komponentenname als Verzeichnisname nötig |
 | `composer: command not found` | Composer ist nicht vorinstalliert; siehe Abschnitt 7 |
 | Composer meldet „plugins have been disabled for safety" | `COMPOSER_ALLOW_SUPERUSER=1` fehlt |
@@ -337,14 +338,14 @@ Quellcode nachsehen. Die Testumgebungs-API steht in
 ## 13. Protokoll des Referenzlaufs
 
 Durchlaufen am 2026-09-04 auf einem frischen Ubuntu-24.04-Container gegen
-`block_catquiz_feedbackwizard` 0.4.6 und Moodle 4.5.13+ (Build 20260903),
+`block_catquiz_feedbackwizard` 0.4.7 und Moodle 4.5.13+ (Build 20260903),
 PHP 8.3.6, PostgreSQL 16.15.
 
 Installierte Komponenten:
 
 | Komponente | Version |
 |---|---|
-| `block_catquiz_feedbackwizard` | 2026090406 |
+| `block_catquiz_feedbackwizard` | 2026090407 |
 | `mod_adaptivequiz` | 2026082705 |
 | `adaptivequizcatmodel_catquiz` | 2026082704 |
 | `local_catquiz` | 2026083025 |
@@ -354,7 +355,7 @@ Ergebnis der fünf Gates:
 
 | Gate | Ergebnis |
 |---|---|
-| PHPUnit | 43 Tests, 196 Assertions, alle grün |
+| PHPUnit | 45 Tests, 204 Assertions, alle grün |
 | phpcs (Moodle-Standard) | 4 Fehler gefunden, per `phpcbf` behoben, danach sauber |
 | PHPDoc (moodlecheck) | 1 Fehler gefunden und behoben, danach sauber |
 | AMD-Bundle | Neubau identisch zum eingecheckten Stand |
@@ -368,6 +369,20 @@ Wichtig für die Bewertung des PHPUnit-Laufs: `local_catquiz_adapter_test::
 test_save_test_configuration_persists_json` hat sich **nicht** übersprungen,
 sondern ist gegen die installierte Engine gelaufen. Der Schreibpfad über
 `\local_catquiz\testenvironment` ist damit belegt und nicht nur behauptet.
+
+### Grenzen dieses Laufs
+
+Der Referenzcontainer fährt PHP 8.3 und damit unter Moodle 4.5 die PHPUnit-9-
+Reihe. Die CI-Matrix deckt zusätzlich PHP 8.4 und, über Moodle 5.0/5.1,
+PHPUnit 11 ab. Beides meldet Dinge, die hier nicht auffallen können:
+
+- **PHP-Deprecations** brechen den CI-Job, weil `moodle-plugin-ci phpunit`
+  mit `--fail-on-warning` läuft. Lokal deshalb ebenfalls mit diesem Schalter
+  prüfen — der Exit-Code ist der Unterschied, nicht die Testausgabe.
+- **PHPUnit-Deprecations** (Metadaten in Docblocks statt Attributen) meldet
+  PHPUnit 11 derzeit 18-fach, ohne den Job zu kippen. Auf Attribute umstellen
+  lässt sich das nicht, solange Moodle 4.5 mit PHPUnit 9.6 unterstützt wird;
+  der Punkt wird erst relevant, wenn 4.5 aus der Matrix fällt.
 
 ## 14. Verhältnis zur CI
 

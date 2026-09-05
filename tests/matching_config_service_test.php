@@ -60,6 +60,43 @@ final class matching_config_service_test extends \advanced_testcase {
     }
 
     /**
+     * A pattern ending in a backslash must not swallow the rest of the line.
+     *
+     * With the legacy escape character this row parsed into three columns and
+     * was silently dropped by the column count check.
+     *
+     * @covers ::parse_csv_rules
+     * @return void
+     */
+    public function test_parse_csv_rules_with_trailing_backslash(): void {
+        $csv = 'shortname,regex,"^INTRO\\",catscale,5';
+
+        $rules = matching_config_service::parse_csv_rules($csv);
+
+        $this->assertCount(1, $rules);
+        $this->assertSame('regex', $rules[0]['operator']);
+        $this->assertSame('^INTRO\\', $rules[0]['pattern']);
+        $this->assertSame('catscale', $rules[0]['targettype']);
+        $this->assertSame('5', $rules[0]['targetvalue']);
+    }
+
+    /**
+     * A quoted field containing a separator must stay one column.
+     *
+     * @covers ::parse_csv_rules
+     * @return void
+     */
+    public function test_parse_csv_rules_with_quoted_separator(): void {
+        $csv = 'fullname,equals,"Maths, advanced",group,GroupA';
+
+        $rules = matching_config_service::parse_csv_rules($csv);
+
+        $this->assertCount(1, $rules);
+        $this->assertSame('Maths, advanced', $rules[0]['pattern']);
+        $this->assertSame('GroupA', $rules[0]['targetvalue']);
+    }
+
+    /**
      * Test invalid regex detection.
      *
      * @covers ::has_invalid_regex

@@ -135,7 +135,12 @@ class matching_config_service {
                 continue;
             }
 
-            $columns = array_map('trim', str_getcsv($line));
+            // The escape parameter is passed explicitly: PHP 8.4 deprecates
+            // relying on the default, and the upcoming default is RFC 4180
+            // behaviour anyway. An empty escape is also the correct choice
+            // here, because a pattern ending in a backslash would otherwise
+            // swallow the rest of the line and silently drop the rule.
+            $columns = array_map('trim', str_getcsv($line, ',', '"', ''));
             if ($lineindex === 0 && self::looks_like_header($columns)) {
                 continue;
             }
