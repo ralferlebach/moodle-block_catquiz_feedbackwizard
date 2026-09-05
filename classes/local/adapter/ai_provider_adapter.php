@@ -53,6 +53,21 @@ class ai_provider_adapter {
     }
 
     /**
+     * Return the AI manager instance.
+     *
+     * Everything goes through an instance on purpose. Moodle 4.5 declares
+     * is_action_available() and is_action_enabled() static, Moodle 5.0 turned
+     * them into instance methods. PHP allows calling a static method on an
+     * instance but not the other way round, so the instance is the only call
+     * style that works on every supported branch.
+     *
+     * @return object
+     */
+    protected static function get_manager(): object {
+        return \core\di::get(ltrim(self::MANAGER_CLASS, '\\'));
+    }
+
+    /**
      * Return whether text generation is available and enabled for a provider.
      *
      * @return bool
@@ -62,8 +77,7 @@ class ai_provider_adapter {
             return false;
         }
 
-        $manager = self::MANAGER_CLASS;
-        return (bool)$manager::is_action_available(self::ACTION_CLASS);
+        return (bool)self::get_manager()->is_action_available(self::ACTION_CLASS);
     }
 
     /**
@@ -78,8 +92,7 @@ class ai_provider_adapter {
             return false;
         }
 
-        $manager = self::MANAGER_CLASS;
-        return (bool)$manager::user_policy_accepted($userid, $contextid);
+        return (bool)self::get_manager()->user_policy_accepted($userid, $contextid);
     }
 
     /**
@@ -102,8 +115,7 @@ class ai_provider_adapter {
             prompttext: $prompt,
         );
 
-        $manager = \core\di::get(ltrim(self::MANAGER_CLASS, '\\'));
-        $response = $manager->process_action($action);
+        $response = self::get_manager()->process_action($action);
 
         if (!$response->get_success()) {
             return '';

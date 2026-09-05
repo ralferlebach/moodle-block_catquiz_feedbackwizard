@@ -270,8 +270,8 @@ cd ~/moodle && php local/moodlecheck/cli/moodlecheck.php \
     --path=blocks/catquiz_feedbackwizard --format=text
 
 # 4. AMD-Bundle
-cd ~/moodle && npm install && npx grunt amd --root=blocks/catquiz_feedbackwizard
-git -C blocks/catquiz_feedbackwizard diff --exit-code amd/build/
+cd ~/moodle/blocks/catquiz_feedbackwizard/amd && ../../../node_modules/.bin/grunt amd
+git -C .. diff --exit-code amd/build/
 
 # 5. Behat
 cd ~/moodle
@@ -287,6 +287,22 @@ Gate 4 hat in `local_catquizlab` keine Entsprechung: dort gibt es kein AMD.
 Dieses Plugin liefert `amd/src/main.js` mit eingechecktem Bundle unter
 `amd/build/`. Weicht das Bundle von der Quelle ab, meldet die CI das — der
 `git diff` oben zeigt dasselbe lokal.
+
+Zwei Details, die je einmal einen roten CI-Lauf gekostet haben:
+
+- **Beide Dateien prüfen, nicht nur das Bundle.** `moodle-plugin-ci` vergleicht
+  `*.js`, `*.js.map` und `*.css` per sha1. Ein `git diff` auf das ganze
+  `amd/build/`-Verzeichnis deckt das ab; ein Vergleich nur von
+  `main.min.js` nicht.
+- **Kein abschließender Zeilenumbruch in `amd/build/`.** Rollup schreibt die
+  Sourcemap ohne, und ein Editor, der beim Speichern einen anhängt, macht die
+  Datei für die CI stale, ohne dass sich eine Zeile Code geändert hat. Die
+  mitgelieferte `.editorconfig` nimmt `amd/build/**` deshalb von
+  `insert_final_newline` aus.
+
+Der Aufruf oben entspricht dem der CI: `moodle-plugin-ci` führt den
+`amd`-Task mit dem Arbeitsverzeichnis `<plugin>/amd` aus, nicht aus dem
+Moodle-Wurzelverzeichnis mit `--root`.
 
 ## 11. Engine-Plugins sind Pflicht, nicht optional
 
@@ -329,6 +345,8 @@ Quellcode nachsehen. Die Testumgebungs-API steht in
 | `local_catquiz_adapter_test` wird übersprungen | Engine fehlt; der Schreibpfad ist dann ungeprüft |
 | KI-Abschnitt in Schritt 4 fehlt trotz aktivem Setting | kein `core_ai`-Provider für `generate_text` konfiguriert |
 | PHPUnit lokal grün, CI nur unter PHP 8.4 rot | PHP-Deprecation; lokal mit `--fail-on-warning` gegenprüfen |
+| „File is stale and needs to be rebuilt: …main.min.js.map" | Editor hat einen Zeilenumbruch angehängt; `.editorconfig` beachten |
+| PHPUnit nur unter Moodle 5.x rot, 4.5 grün | Engine- oder Core-API zwischen den Zweigen unterschiedlich |
 | Nur ein `catquiz`-Verzeichnis im Engine-Ordner | voller Komponentenname als Verzeichnisname nötig |
 | `composer: command not found` | Composer ist nicht vorinstalliert; siehe Abschnitt 7 |
 | Composer meldet „plugins have been disabled for safety" | `COMPOSER_ALLOW_SUPERUSER=1` fehlt |
@@ -338,14 +356,14 @@ Quellcode nachsehen. Die Testumgebungs-API steht in
 ## 13. Protokoll des Referenzlaufs
 
 Durchlaufen am 2026-09-04 auf einem frischen Ubuntu-24.04-Container gegen
-`block_catquiz_feedbackwizard` 0.4.7 und Moodle 4.5.13+ (Build 20260903),
+`block_catquiz_feedbackwizard` 0.4.8 und Moodle 4.5.13+ (Build 20260903),
 PHP 8.3.6, PostgreSQL 16.15.
 
 Installierte Komponenten:
 
 | Komponente | Version |
 |---|---|
-| `block_catquiz_feedbackwizard` | 2026090407 |
+| `block_catquiz_feedbackwizard` | 2026090408 |
 | `mod_adaptivequiz` | 2026082705 |
 | `adaptivequizcatmodel_catquiz` | 2026082704 |
 | `local_catquiz` | 2026083025 |
