@@ -33,11 +33,11 @@ namespace block_catquiz_feedbackwizard\local\adapter;
  * settings until the cache expires. That is easy to forget and hard to notice,
  * so every write goes through local_catquiz\testenvironment here.
  *
- * Note that the engine does NOT move the contextid when the main scale
- * changes, although its own comment says it should — the guard compares an
- * already overwritten value. See
- * docs/design/issue-catquiz-contextid-on-scale-change.md. Do not assume the
- * adapter fixes this.
+ * The engine does NOT move the contextid when the main scale changes, although
+ * its own comment says it should — the guard compares an already overwritten
+ * value. local_catquiz issue #127, see
+ * docs/design/issue-catquiz-contextid-on-scale-change.md. This class works
+ * around it in correct_context_after_scale_change().
  *
  * @package     block_catquiz_feedbackwizard
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>
@@ -91,6 +91,51 @@ class local_catquiz_adapter {
         $class = self::TESTENVIRONMENT_CLASS;
         $testenvironment = new $class($record);
 
-        return (int)$testenvironment->save_or_update();
+        $savedid = (int)$testenvironment->save_or_update();
+
+        self::correct_context_after_scale_change($savedid);
+
+        return $savedid;
+    }
+
+    /**
+     * Put the test's context back on its main scale.
+     *
+     * Works around local_catquiz issue #127
+     * (https://github.com/ralferlebach/moodle-local_catquiz/issues/127), also
+     * written up in docs/design/issue-catquiz-contextid-on-scale-change.md:
+     * the engine means
+     * to move the contextid when the main scale changes, but its guard compares
+     * a value it has already overwritten, so it never fires. Passing contextid
+     * explicitly does not help either — update_object() only ever assigns it
+     * inside that same guard.
+     *
+     * Without this, a teacher who switches the main scale in step 3 leaves the
+     * test pointing at the previous scale's context.
+     *
+     * This is a single-field correction, deliberately narrow, and it becomes a
+     * no-op the moment the engine is fixed.
+     *
+     * @param int $testid
+     * @return void
+     */
+    protected static function correct_context_after_scale_change(int $testid): void {
+        global $DB;
+
+        $test = $DB->get_record('local_catquiz_tests', ['id' => $testid], 'id, catscaleid, contextid');
+        if (!$test || (int)$test->catscaleid < 1) {
+            return;
+        }
+
+        $scalecontext = $DB->get_field('local_catquiz_catscales', 'contextid', ['id' => (int)$test->catscaleid]);
+        if ($scalecontext === false || (int)$scalecontext < 1) {
+            return;
+        }
+
+        if ((int)$scalecontext === (int)$test->contextid) {
+            return;
+        }
+
+        $DB->set_field('local_catquiz_tests', 'contextid', (int)$scalecontext, ['id' => $testid]);
     }
 }

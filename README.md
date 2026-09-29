@@ -68,7 +68,8 @@ The wizard has six steps:
 3. **Edit test settings** - main scale, subscales, question counts, precision
    mode, time limit and completion
 4. **Configure feedback ranges** - up to ten ranges with labels, boundaries and
-   template-ready texts, plus the optional follow-up actions
+   template-ready texts, optionally imported from a CSV serial document, plus
+   the optional follow-up actions
 5. **Configure matching** - routing rules, either as a single rule or as CSV
 6. **Confirm and save** - a review summary, a settings pattern export, and the
    write back to `local_catquiz`
@@ -151,10 +152,11 @@ settings until the cache expires — a failure nobody sees. A PHPUnit test
 measures the purge rather than asserting our own key names.
 
 The engine intends to recalculate the context id on a scale change as well,
-but that guard never fires; see
-`docs/design/issue-catquiz-contextid-on-scale-change.md`. The adapter does not
-work around it, and the current behaviour is pinned by a test that will fail
-once the engine is fixed.
+but that guard never fires (local_catquiz issue #127, see
+`docs/design/issue-catquiz-contextid-on-scale-change.md`). The adapter corrects
+that one field after saving, narrowly and only while it is needed: one test
+pins the engine's behaviour and fails once #127 is resolved, at which point the
+workaround is to be removed.
 
 Settings patterns are versioned JSON documents that describe how a test is set
 up, not which test they came from. Draft ids, course ids and test ids are
@@ -177,6 +179,11 @@ result falls into a range. The wizard only fills the keys the engine reads:
 `enrolment_message_checkbox_<scale>_<range>`. Writing anything else would be
 silently ineffective, which is exactly what an earlier version of this plugin
 did.
+
+Feedback texts can be imported from a CSV with one row per range
+(`range,label,text`), so the same building blocks can be reused across tests. A
+row beyond the configured range count and an unknown placeholder are reported
+rather than silently dropped or shipped to the student.
 
 Feedback placeholders are resolved on the way into the engine, not when the
 text is displayed. `local_catquiz` shows stored feedback verbatim — see

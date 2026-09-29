@@ -27,6 +27,7 @@ namespace block_catquiz_feedbackwizard\form;
 use block_catquiz_feedbackwizard\catquiz_data;
 use block_catquiz_feedbackwizard\local\service\ai_feedback_service;
 use block_catquiz_feedbackwizard\local\service\feature_settings_service;
+use block_catquiz_feedbackwizard\local\service\feedback_import_service;
 use block_catquiz_feedbackwizard\local\service\feedback_template_service;
 use block_catquiz_feedbackwizard\local\service\matching_config_service;
 use block_catquiz_feedbackwizard\local\service\pattern_export_service;
@@ -445,6 +446,24 @@ class wizard extends dynamic_form {
             'feedbacktokeninfo',
             '',
             get_string('message:feedbacktokeninfo', 'block_catquiz_feedbackwizard')
+        );
+
+        $mform->addElement(
+            'filepicker',
+            'feedbackimportfile',
+            get_string('field:feedbackimportfile', 'block_catquiz_feedbackwizard'),
+            null,
+            [
+                'maxbytes' => feature_settings_service::get_pattern_import_maxbytes(),
+                'accepted_types' => ['.csv', '.txt'],
+            ]
+        );
+        $mform->addElement(
+            'static',
+            'feedbackimportinfo',
+            '',
+            get_string('message:feedbackimportinfo', 'block_catquiz_feedbackwizard')
+                . html_writer::tag('pre', s(feedback_import_service::get_template_example()))
         );
 
         if (!feature_settings_service::is_course_provisioning_enabled()) {
@@ -1087,6 +1106,15 @@ class wizard extends dynamic_form {
             }
         }
 
+        if ($step === 4) {
+            $csv = (string)$this->get_file_content('feedbackimportfile');
+            if (trim($csv) !== '') {
+                $rows = feedback_import_service::parse($csv);
+                $merged = feedback_import_service::apply_to_state($merged, $rows);
+                $merged['feedbackimportmessages'] = feedback_import_service::get_messages();
+            }
+        }
+
         if ($step === 4 && !empty($merged['useairefinement'])) {
             $merged = ai_feedback_service::refine_wizard_state(
                 $merged,
@@ -1249,6 +1277,11 @@ class wizard extends dynamic_form {
 
         foreach ((array)($data['patternwarnings'] ?? []) as $warning) {
             $summary[] = get_string('field:reviewwarning', 'block_catquiz_feedbackwizard') . ': ' . s((string)$warning);
+        }
+
+        foreach ((array)($data['feedbackimportmessages'] ?? []) as $message) {
+            $summary[] = get_string('field:feedbackimportfile', 'block_catquiz_feedbackwizard') . ': ' .
+                s((string)$message);
         }
 
         foreach ((array)($data['aimessages'] ?? []) as $message) {

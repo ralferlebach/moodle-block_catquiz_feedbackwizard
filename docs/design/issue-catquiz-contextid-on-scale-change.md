@@ -1,5 +1,10 @@
 # [BUG] `contextid` folgt keinem Skalenwechsel: die Bedingung vergleicht einen bereits überschriebenen Wert
 
+**Eingereicht als [local_catquiz#127](https://github.com/ralferlebach/moodle-local_catquiz/issues/127)
+am 2026-09-29.** Solange der Punkt offen ist, zieht
+`block_catquiz_feedbackwizard` den Kontext selbst nach; siehe Abschnitt
+„Umgehung im Block" am Ende.
+
 ## Problem
 
 `testenvironment::update_object()` will die `contextid` einer Testumgebung neu
@@ -118,3 +123,21 @@ Der Block hält den Ist-Zustand in
 `tests/local_catquiz_adapter_test.php::test_scale_change_does_not_move_the_context_engine_defect`
 fest. Dieser Test schlägt fehl, sobald der Punkt behoben ist — beabsichtigt,
 damit eine Umgehung ihre Ursache nicht überlebt.
+
+## Umgehung im Block
+
+`local_catquiz_adapter::correct_context_after_scale_change()` setzt nach jedem
+`save_or_update()` die `contextid` auf den Kontext der gespeicherten Skala,
+falls beide auseinanderfallen. Es ist ein Eingriff in genau ein Feld und wird
+wirkungslos, sobald #127 behoben ist.
+
+Zwei Tests halten die beiden Seiten auseinander:
+
+| Test | Fährt | Erwartet |
+|---|---|---|
+| `test_engine_still_ignores_the_scale_change_defect` | `testenvironment` direkt | Kontext bleibt stehen |
+| `test_adapter_moves_the_context_to_the_new_scale` | den Adapter | Kontext wandert mit |
+
+Der erste schlägt fehl, sobald #127 behoben ist. Das ist beabsichtigt: Eine
+Umgehung, die ihre Ursache überlebt, verbirgt das reparierte Verhalten. Die
+Fehlermeldung sagt, was dann zu entfernen ist.

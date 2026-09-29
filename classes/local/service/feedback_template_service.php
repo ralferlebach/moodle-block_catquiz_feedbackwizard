@@ -100,13 +100,6 @@ class feedback_template_service {
     }
 
     /**
-     * Render a simple preview for one feedback text.
-     *
-     * @param string $text
-     * @param string $templateformat
-     * @return string
-     */
-    /**
      * Replace the supported tokens with their real values.
      *
      * local_catquiz stores and displays feedback texts verbatim — see
