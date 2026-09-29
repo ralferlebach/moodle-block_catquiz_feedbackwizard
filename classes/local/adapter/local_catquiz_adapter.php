@@ -28,10 +28,16 @@ namespace block_catquiz_feedbackwizard\local\adapter;
  * Adapter for all write access to local_catquiz.
  *
  * The wizard must not write to the local_catquiz tables directly. Doing so
- * skips two things local_catquiz does on every save: it purges the
- * changesinquizsettings cache, and it recalculates the contextid when the main
- * scale changed. Both are easy to forget and hard to notice, so every write
- * goes through local_catquiz\testenvironment here.
+ * skips the changesinquizsettings cache purge in
+ * testenvironment::save_or_update(), after which the engine serves stale
+ * settings until the cache expires. That is easy to forget and hard to notice,
+ * so every write goes through local_catquiz\testenvironment here.
+ *
+ * Note that the engine does NOT move the contextid when the main scale
+ * changes, although its own comment says it should — the guard compares an
+ * already overwritten value. See
+ * docs/design/issue-catquiz-contextid-on-scale-change.md. Do not assume the
+ * adapter fixes this.
  *
  * @package     block_catquiz_feedbackwizard
  * @copyright   2024 Ralf Erlebach <ralf.erlebach@gmx.de>

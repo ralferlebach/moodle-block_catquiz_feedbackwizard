@@ -194,12 +194,52 @@ class pattern_import_service {
                 (string)($range['templateformat'] ?? 'mustache')
             );
             $state['feedbackactioncourseenabled_' . $index] = !empty($range['actioncourseenabled']) ? 1 : 0;
-            $state['feedbackactioncoursetarget_' . $index] = (string)($range['actioncoursetarget'] ?? '');
+            $state['feedbackactioncoursetarget_' . $index] = self::resolve_course_targets(
+                (array)($range['actioncoursetarget'] ?? [])
+            );
+            $state['feedbackactionmessage_' . $index] = !empty($range['actionmessage']) ? 1 : 0;
             $state['feedbackactiongroupenabled_' . $index] = !empty($range['actiongroupenabled']) ? 1 : 0;
             $state['feedbackactiongrouptarget_' . $index] = (string)($range['actiongrouptarget'] ?? '');
         }
 
         return $state;
+    }
+
+    /**
+     * Keep only the course ids that exist here and are allowed as targets.
+     *
+     * Course ids are site local, so a pattern from another site points at
+     * whatever happens to carry that id here. Dropping the unknown ones with a
+     * warning is safer than enrolling students into a course nobody chose.
+     *
+     * @param array $courseids
+     * @return array
+     */
+    protected static function resolve_course_targets(array $courseids): array {
+        global $DB;
+
+        $resolved = [];
+        foreach ($courseids as $courseid) {
+            $courseid = (int)$courseid;
+            if ($courseid < 2) {
+                continue;
+            }
+            if (!$DB->record_exists('course', ['id' => $courseid])) {
+                self::$warnings[] = get_string(
+                    'warning:patterncoursemissing',
+                    'block_catquiz_feedbackwizard',
+                    $courseid
+                );
+                continue;
+            }
+            if (!feature_settings_service::is_course_enrolment_target_allowed($courseid)) {
+                self::$warnings[] = get_string('warning:patterncategorynotallowed', 'block_catquiz_feedbackwizard');
+                continue;
+            }
+            $resolved[] = $courseid;
+        }
+
+        return array_values(array_unique($resolved));
     }
 
     /**

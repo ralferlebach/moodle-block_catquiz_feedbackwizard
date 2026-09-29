@@ -82,10 +82,13 @@ Site administration -> Plugins -> Blocks -> CATQuiz Wizard
 
 There, you find these settings:
 
-* **Enable course provisioning** - allows the wizard to offer course follow-up
-  actions for a feedback range. Disabled by default.
-* **Enable group creation** - allows the wizard to offer group follow-up
-  actions for a feedback range. Disabled by default.
+* **Enable automatic course enrolment** - lets teachers attach courses to a
+  feedback range. `local_catquiz` enrols the student into those courses once a
+  result falls into the range. Nothing is created; the courses must already
+  exist. Disabled by default.
+* **Enable automatic group assignment** - lets teachers name groups for a
+  feedback range. `local_catquiz` adds the student to groups of that name, and
+  only to groups that already exist. Disabled by default.
 * **Enable AI refinement of feedback texts** - allows teachers to send feedback
   texts to Moodle's AI subsystem for language refinement. Disabled by default,
   and additionally requires a configured provider for the text generation
@@ -142,9 +145,16 @@ work happens in services under `classes/local/`.
 All write access to `local_catquiz` goes through
 `classes/local/adapter/local_catquiz_adapter.php`, which uses
 `\local_catquiz\testenvironment`. This is not decoration. Writing to the engine
-tables directly skips two things the engine does on every save: it purges the
-settings cache, and it recalculates the context id when the main scale changed.
-Both failures are silent, which is what makes them expensive.
+tables directly skips the cache purge in
+`testenvironment::save_or_update()`, so the engine keeps serving the previous
+settings until the cache expires — a failure nobody sees. A PHPUnit test
+measures the purge rather than asserting our own key names.
+
+The engine intends to recalculate the context id on a scale change as well,
+but that guard never fires; see
+`docs/design/issue-catquiz-contextid-on-scale-change.md`. The adapter does not
+work around it, and the current behaviour is pinned by a test that will fail
+once the engine is fixed.
 
 Settings patterns are versioned JSON documents that describe how a test is set
 up, not which test they came from. Draft ids, course ids and test ids are
@@ -157,6 +167,16 @@ AI refinement never talks to a vendor directly. It hands a prompt to Moodle's
 policy and the action log stay where an administrator can see them. Only the
 feedback text and the wording instructions are sent - no names, course data or
 results. If a response loses a placeholder, the original text is kept.
+
+Enrolment is the engine's job, not ours. `local_catquiz` performs the course
+enrolment and the group membership itself in
+`attemptfeedback::get_courses_to_enrol()` and `get_groups_to_enrol()`, once a
+result falls into a range. The wizard only fills the keys the engine reads:
+`catquiz_courses_<scale>_<range>` (course ids),
+`catquiz_group_<scale>_<range>` (group names, comma separated) and
+`enrolment_message_checkbox_<scale>_<range>`. Writing anything else would be
+silently ineffective, which is exactly what an earlier version of this plugin
+did.
 
 Feedback placeholders are resolved on the way into the engine, not when the
 text is displayed. `local_catquiz` shows stored feedback verbatim — see

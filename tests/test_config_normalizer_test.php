@@ -109,7 +109,7 @@ final class test_config_normalizer_test extends \advanced_testcase {
                             'text' => 'Needs support',
                             'templateformat' => 'plain',
                             'actioncourseenabled' => 1,
-                            'actioncoursetarget' => 'COURSE-A',
+                            'actioncoursetarget' => [7],
                             'actiongroupenabled' => 1,
                             'actiongrouptarget' => 'GROUP-A',
                         ],
@@ -149,7 +149,7 @@ final class test_config_normalizer_test extends \advanced_testcase {
         $this->assertSame('Needs support', $defaults['feedbacktext_1']);
         $this->assertSame('plain', $defaults['feedbacktemplateformat_1']);
         $this->assertSame(1, $defaults['feedbackactioncourseenabled_1']);
-        $this->assertSame('COURSE-A', $defaults['feedbackactioncoursetarget_1']);
+        $this->assertSame([7], $defaults['feedbackactioncoursetarget_1']);
         $this->assertSame(1, $defaults['feedbackactiongroupenabled_1']);
         $this->assertSame('GROUP-A', $defaults['feedbackactiongrouptarget_1']);
         $this->assertSame('rule', $defaults['matchingmode']);

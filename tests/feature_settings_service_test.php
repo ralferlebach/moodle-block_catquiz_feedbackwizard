@@ -116,14 +116,14 @@ final class feature_settings_service_test extends \advanced_testcase {
         $state = [
             'feedbacklabel_1' => 'Support',
             'feedbackactioncourseenabled_1' => 1,
-            'feedbackactioncoursetarget_1' => 'REMEDIAL-01',
+            'feedbackactioncoursetarget_1' => [9],
             'feedbackactiongroupenabled_1' => 1,
             'feedbackactiongrouptarget_1' => 'Group A',
             'feedbackranges' => [
                 [
                     'label' => 'Support',
                     'actioncourseenabled' => 1,
-                    'actioncoursetarget' => 'REMEDIAL-01',
+                    'actioncoursetarget' => [9],
                     'actiongroupenabled' => 1,
                     'actiongrouptarget' => 'Group A',
                 ],
@@ -136,7 +136,7 @@ final class feature_settings_service_test extends \advanced_testcase {
         $this->assertArrayNotHasKey('feedbackactiongrouptarget_1', $sanitised);
         $this->assertEquals(0, $sanitised['feedbackranges'][0]['actioncourseenabled']);
         $this->assertEquals(0, $sanitised['feedbackranges'][0]['actiongroupenabled']);
-        $this->assertSame('', $sanitised['feedbackranges'][0]['actioncoursetarget']);
+        $this->assertSame([], $sanitised['feedbackranges'][0]['actioncoursetarget']);
         $this->assertSame('Support', $sanitised['feedbacklabel_1']);
     }
 
@@ -153,7 +153,7 @@ final class feature_settings_service_test extends \advanced_testcase {
 
         $state = [
             'feedbackactioncourseenabled_1' => 1,
-            'feedbackactioncoursetarget_1' => 'REMEDIAL-01',
+            'feedbackactioncoursetarget_1' => [9],
             'feedbackactiongroupenabled_1' => 1,
             'feedbackactiongrouptarget_1' => 'Group A',
         ];

@@ -535,18 +535,38 @@ class wizard extends dynamic_form {
                     $feedbackdefaults['feedbackactioncourseenabled_' . $index] ?? 0
                 );
 
+                // The engine enrols by course id, so this has to be a real
+                // selection and not free text.
                 $mform->addElement(
-                    'text',
+                    'autocomplete',
                     'feedbackactioncoursetarget_' . $index,
-                    get_string('field:feedbackactioncoursetarget', 'block_catquiz_feedbackwizard', $index)
+                    get_string('field:feedbackactioncoursetarget', 'block_catquiz_feedbackwizard', $index),
+                    catquiz_data::get_enrolment_course_options(),
+                    ['multiple' => true]
                 );
-                $mform->setType('feedbackactioncoursetarget_' . $index, PARAM_TEXT);
+                $mform->setType('feedbackactioncoursetarget_' . $index, PARAM_INT);
                 $mform->setDefault(
                     'feedbackactioncoursetarget_' . $index,
-                    $feedbackdefaults['feedbackactioncoursetarget_' . $index] ?? ''
+                    $feedbackdefaults['feedbackactioncoursetarget_' . $index] ?? []
                 );
                 $mform->disabledIf(
                     'feedbackactioncoursetarget_' . $index,
+                    'feedbackactioncourseenabled_' . $index,
+                    'notchecked'
+                );
+
+                $mform->addElement(
+                    'advcheckbox',
+                    'feedbackactionmessage_' . $index,
+                    get_string('field:feedbackactionmessage', 'block_catquiz_feedbackwizard', $index)
+                );
+                $mform->setType('feedbackactionmessage_' . $index, PARAM_INT);
+                $mform->setDefault(
+                    'feedbackactionmessage_' . $index,
+                    $feedbackdefaults['feedbackactionmessage_' . $index] ?? 0
+                );
+                $mform->disabledIf(
+                    'feedbackactionmessage_' . $index,
                     'feedbackactioncourseenabled_' . $index,
                     'notchecked'
                 );
@@ -918,7 +938,7 @@ class wizard extends dynamic_form {
 
                 if (
                     !empty($data['feedbackactioncourseenabled_' . $index])
-                    && trim((string)($data['feedbackactioncoursetarget_' . $index] ?? '')) === ''
+                    && empty(array_filter((array)($data['feedbackactioncoursetarget_' . $index] ?? [])))
                 ) {
                     $errors['feedbackactioncoursetarget_' . $index] =
                         get_string('error:feedbackactioncoursetargetrequired', 'block_catquiz_feedbackwizard');

@@ -273,6 +273,8 @@ class test_config_writer {
                     'format' => '1',
                     'itemid' => '0',
                 ];
+
+                self::apply_enrolment_actions($jsondata, $feedbackrange, $scaleid, $rangeindex);
             }
         }
 
@@ -281,6 +283,56 @@ class test_config_writer {
             'feedbackrangecount' => $feedbackrangecount,
             'feedbackranges' => array_values($feedbackranges),
         ];
+    }
+
+    /**
+     * Write the enrolment keys local_catquiz reads for one scale and range.
+     *
+     * The engine performs the enrolment itself in
+     * attemptfeedback::get_courses_to_enrol() / get_groups_to_enrol(), once a
+     * result falls into the range. The wizard therefore only fills the keys the
+     * engine looks for; it never enrols anybody, and it never creates a course
+     * or a group — the engine enrols into existing ones only.
+     *
+     * @param array $jsondata
+     * @param array $feedbackrange
+     * @param int $scaleid
+     * @param int $rangeindex
+     * @return void
+     */
+    protected static function apply_enrolment_actions(
+        array &$jsondata,
+        array $feedbackrange,
+        int $scaleid,
+        int $rangeindex
+    ): void {
+        $suffix = $scaleid . '_' . $rangeindex;
+
+        $courseids = [];
+        if (!empty($feedbackrange['actioncourseenabled'])) {
+            foreach ((array)($feedbackrange['actioncoursetarget'] ?? []) as $courseid) {
+                $courseid = (int)$courseid;
+                if ($courseid > 1 && feature_settings_service::is_course_enrolment_target_allowed($courseid)) {
+                    $courseids[] = $courseid;
+                }
+            }
+        }
+        $jsondata['catquiz_courses_' . $suffix] = array_values(array_unique($courseids));
+        $jsondata['enrolment_message_checkbox_' . $suffix] = !empty($feedbackrange['actionmessage']) ? 1 : 0;
+
+        // The engine matches groups by NAME and only joins groups that already
+        // exist in the target course.
+        $groups = '';
+        if (!empty($feedbackrange['actiongroupenabled'])) {
+            $names = array_filter(array_map(
+                'trim',
+                explode(',', (string)($feedbackrange['actiongrouptarget'] ?? ''))
+            ), static function (string $name): bool {
+                return $name !== '';
+            });
+            $groups = implode(',', $names);
+        }
+        $jsondata['catquiz_group_' . $suffix] = $groups;
     }
 
     /**

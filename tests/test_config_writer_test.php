@@ -70,7 +70,7 @@ final class test_config_writer_test extends \advanced_testcase {
             'feedbacktext_1' => 'Please keep practising.',
             'feedbacktemplateformat_1' => 'mustache',
             'feedbackactioncourseenabled_1' => 1,
-            'feedbackactioncoursetarget_1' => 'COURSE-101,COURSE-102',
+            'feedbackactioncoursetarget_1' => [101, 102],
             'feedbackactiongroupenabled_1' => 1,
             'feedbackactiongrouptarget_1' => 'GROUP-A',
             'feedbacklabel_2' => 'On track',
@@ -120,7 +120,7 @@ final class test_config_writer_test extends \advanced_testcase {
         $this->assertCount(2, $mapped['catquiz_wizard']['feedbackranges']);
         $this->assertSame('mustache', $mapped['catquiz_wizard']['feedbackranges'][0]['templateformat']);
         $this->assertSame(1, $mapped['catquiz_wizard']['feedbackranges'][0]['actioncourseenabled']);
-        $this->assertSame('COURSE-101,COURSE-102', $mapped['catquiz_wizard']['feedbackranges'][0]['actioncoursetarget']);
+        $this->assertSame([101, 102], $mapped['catquiz_wizard']['feedbackranges'][0]['actioncoursetarget']);
         $this->assertSame(1, $mapped['catquiz_wizard']['feedbackranges'][0]['actiongroupenabled']);
         $this->assertSame('GROUP-A', $mapped['catquiz_wizard']['feedbackranges'][0]['actiongrouptarget']);
         $this->assertSame('plain', $mapped['catquiz_wizard']['feedbackranges'][1]['templateformat']);
@@ -166,5 +166,46 @@ final class test_config_writer_test extends \advanced_testcase {
         ]);
 
         $this->assertSame('conditions', $mapped['catquiz_wizard']['clonescope']);
+    }
+
+    /**
+     * The enrolment keys must match what local_catquiz actually reads.
+     *
+     * See attemptfeedback::get_courses_to_enrol() and get_groups_to_enrol():
+     * course ids as an array, group NAMES comma separated, plus the message
+     * flag. Writing our own key names would be silently ineffective.
+     *
+     * @covers ::apply_wizard_state
+     * @return void
+     */
+    public function test_enrolment_actions_use_the_engine_keys(): void {
+        $mapped = test_config_writer::apply_wizard_state([], [
+            'mainscaleid' => 5,
+            'reportingstrategy' => 'main_only',
+            'feedbackrangecount' => 2,
+            'feedbacklabel_1' => 'Support',
+            'feedbacklower_1' => -3.0,
+            'feedbackupper_1' => 0.0,
+            'feedbacktext_1' => 'Text',
+            'feedbackactioncourseenabled_1' => 1,
+            'feedbackactioncoursetarget_1' => [101, 102, 101, 0, 1],
+            'feedbackactionmessage_1' => 1,
+            'feedbackactiongroupenabled_1' => 1,
+            'feedbackactiongrouptarget_1' => ' Group A , , Group B ',
+            'feedbacklabel_2' => 'Ready',
+            'feedbacklower_2' => 0.0,
+            'feedbackupper_2' => 3.0,
+            'feedbacktext_2' => 'Text',
+        ]);
+
+        // Duplicates, the dummy 0 and the site course must be dropped.
+        $this->assertSame([101, 102], $mapped['catquiz_courses_5_1']);
+        $this->assertSame('Group A,Group B', $mapped['catquiz_group_5_1']);
+        $this->assertSame(1, $mapped['enrolment_message_checkbox_5_1']);
+
+        // A range without actions must clear the keys rather than leave stale ones.
+        $this->assertSame([], $mapped['catquiz_courses_5_2']);
+        $this->assertSame('', $mapped['catquiz_group_5_2']);
+        $this->assertSame(0, $mapped['enrolment_message_checkbox_5_2']);
     }
 }

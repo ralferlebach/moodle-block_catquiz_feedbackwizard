@@ -154,7 +154,13 @@ class pattern_export_service {
                     (string)($feedbackrange['templateformat'] ?? 'mustache')
                 ),
                 'actioncourseenabled' => !empty($feedbackrange['actioncourseenabled']) ? 1 : 0,
-                'actioncoursetarget' => (string)($feedbackrange['actioncoursetarget'] ?? ''),
+                // Course ids are site local, like scale ids. They travel so a
+                // pattern is complete, and the import checks them.
+                'actioncoursetarget' => array_values(array_map(
+                    'intval',
+                    (array)($feedbackrange['actioncoursetarget'] ?? [])
+                )),
+                'actionmessage' => !empty($feedbackrange['actionmessage']) ? 1 : 0,
                 'actiongroupenabled' => !empty($feedbackrange['actiongroupenabled']) ? 1 : 0,
                 'actiongrouptarget' => (string)($feedbackrange['actiongrouptarget'] ?? ''),
             ];

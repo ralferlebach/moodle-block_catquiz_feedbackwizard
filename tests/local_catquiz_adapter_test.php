@@ -92,4 +92,139 @@ final class local_catquiz_adapter_test extends \advanced_testcase {
         $stored = json_decode((string)$DB->get_field('local_catquiz_tests', 'json', ['id' => $testid]), true);
         $this->assertEquals(42, $stored['catquiz_catscales']);
     }
+
+    /**
+     * Saving must invalidate the engine's quiz settings caches.
+     *
+     * This is one of the two reasons the adapter exists. A direct
+     * $DB->update_record() writes the same row but skips the purge in
+     * testenvironment::save_or_update(), so the engine keeps serving the old
+     * settings until the cache expires — a failure nobody sees.
+     *
+     * @return void
+     */
+    public function test_save_purges_the_engine_cache(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+
+        if (!local_catquiz_adapter::is_available()) {
+            $this->markTestSkipped('local_catquiz is not installed in this environment.');
+        }
+
+        $testid = (int)$DB->insert_record('local_catquiz_tests', (object)[
+            'componentid' => 4244,
+            'component' => 'mod_adaptivequiz',
+            'catscaleid' => 0,
+            'contextid' => 0,
+            'courseid' => 0,
+            'name' => 'Cache test',
+            'description' => '',
+            'descriptionformat' => FORMAT_HTML,
+            'json' => json_encode([]),
+            'status' => 1,
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ]);
+
+        // Both caches declare changesinquizsettings as an invalidation event.
+        $scales = \cache::make('local_catquiz', 'cattest_active_scales');
+        $numitems = \cache::make('local_catquiz', 'catscales_num_items');
+        $scales->set('probe', 'stale');
+        $numitems->set('probe', 'stale');
+        $this->assertSame('stale', $scales->get('probe'), 'precondition: cache is populated');
+        $this->assertSame('stale', $numitems->get('probe'), 'precondition: cache is populated');
+
+        local_catquiz_adapter::save_test_configuration($testid, ['catquiz_catscales' => 1]);
+
+        $this->assertFalse(
+            $scales->get('probe'),
+            'cattest_active_scales must be invalidated when settings are saved'
+        );
+        $this->assertFalse(
+            $numitems->get('probe'),
+            'catscales_num_items must be invalidated when settings are saved'
+        );
+    }
+
+    /**
+     * Document that a scale change does NOT move the test's context.
+     *
+     * local_catquiz intends to do this — see the comment in
+     * testenvironment::update_object() — but the guard compares
+     * $record->catscaleid against $this->catscaleid after having overwritten
+     * the former with the latter twenty lines earlier, so it never fires.
+     * See docs/design/issue-catquiz-contextid-on-scale-change.md.
+     *
+     * This test asserts the behaviour as it is, not as it should be. It will
+     * fail once the engine is fixed, and that is deliberate: at that point the
+     * documentation claiming the adapter takes care of the context has to be
+     * corrected back, and this test replaced by the positive one.
+     *
+     * @return void
+     */
+    public function test_scale_change_does_not_move_the_context_engine_defect(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+
+        if (!local_catquiz_adapter::is_available()) {
+            $this->markTestSkipped('local_catquiz is not installed in this environment.');
+        }
+
+        $makescale = function (string $name): \stdClass {
+            global $DB;
+            $id = \local_catquiz\data\dataapi::create_catscale(
+                new \local_catquiz\data\catscale_structure([
+                    'name' => $name,
+                    'description' => '',
+                    'parentid' => 0,
+                    'minscalevalue' => -3.0,
+                    'maxscalevalue' => 3.0,
+                    'contextid' => 0,
+                    'timecreated' => time(),
+                    'timemodified' => time(),
+                ])
+            );
+            return $DB->get_record('local_catquiz_catscales', ['id' => $id]);
+        };
+
+        $first = $makescale('Context scale A');
+        $second = $makescale('Context scale B');
+
+        if ((int)$first->contextid === (int)$second->contextid) {
+            $this->markTestSkipped('Both scales share a context, so there is nothing to observe.');
+        }
+
+        $testid = (int)$DB->insert_record('local_catquiz_tests', (object)[
+            'componentid' => 4245,
+            'component' => 'mod_adaptivequiz',
+            'catscaleid' => (int)$first->id,
+            'contextid' => (int)$first->contextid,
+            'courseid' => 0,
+            'name' => 'Context test',
+            'description' => '',
+            'descriptionformat' => FORMAT_HTML,
+            'json' => json_encode([]),
+            'status' => 1,
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ]);
+
+        local_catquiz_adapter::save_test_configuration(
+            $testid,
+            ['catquiz_catscales' => (int)$second->id],
+            (int)$second->id
+        );
+
+        $stored = $DB->get_record('local_catquiz_tests', ['id' => $testid], 'id, catscaleid, contextid');
+
+        $this->assertEquals((int)$second->id, (int)$stored->catscaleid, 'the scale itself is stored');
+        $this->assertEquals(
+            (int)$first->contextid,
+            (int)$stored->contextid,
+            'If this fails, local_catquiz now moves the context on a scale change. '
+                . 'Remove this test, restore the positive assertion, and correct the README.'
+        );
+    }
 }

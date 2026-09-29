@@ -24,6 +24,8 @@
 
 namespace block_catquiz_feedbackwizard;
 
+use block_catquiz_feedbackwizard\local\service\feature_settings_service;
+
 /**
  * Data access helper methods for the CATQuiz wizard.
  *
@@ -208,6 +210,45 @@ class catquiz_data {
         return $options;
     }
 
+
+    /**
+     * Return the courses that may be used as an enrolment target.
+     *
+     * local_catquiz enrols by course id (see attemptfeedback::get_courses_to_enrol),
+     * so the wizard has to offer a real selection instead of free text. The
+     * list honours the allowed_target_categories setting.
+     *
+     * @return array Course id => display name.
+     */
+    public static function get_enrolment_course_options(): array {
+        global $DB;
+
+        $allowed = feature_settings_service::get_allowed_target_categories();
+
+        $params = [];
+        $where = 'c.id > 1';
+        if (!empty($allowed)) {
+            [$insql, $params] = $DB->get_in_or_equal($allowed, SQL_PARAMS_NAMED);
+            $where .= " AND c.category {$insql}";
+        }
+
+        $records = $DB->get_records_sql(
+            "SELECT c.id, c.fullname, c.shortname
+               FROM {course} c
+              WHERE {$where}
+          ORDER BY c.fullname ASC",
+            $params,
+            0,
+            500
+        );
+
+        $options = [];
+        foreach ($records as $record) {
+            $options[(int)$record->id] = format_string($record->fullname) . ' (' . $record->shortname . ')';
+        }
+
+        return $options;
+    }
 
     /**
      * Return course category options for matching rules.

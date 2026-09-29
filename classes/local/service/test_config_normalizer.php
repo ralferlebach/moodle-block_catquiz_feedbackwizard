@@ -467,7 +467,8 @@ class test_config_normalizer {
                     'text' => (string)($range['text'] ?? ''),
                     'templateformat' => (string)($range['templateformat'] ?? 'mustache'),
                     'actioncourseenabled' => !empty($range['actioncourseenabled']) ? 1 : 0,
-                    'actioncoursetarget' => (string)($range['actioncoursetarget'] ?? ''),
+                    'actioncoursetarget' => array_values(array_map('intval', (array)($range['actioncoursetarget'] ?? []))),
+                    'actionmessage' => !empty($range['actionmessage']) ? 1 : 0,
                     'actiongroupenabled' => !empty($range['actiongroupenabled']) ? 1 : 0,
                     'actiongrouptarget' => (string)($range['actiongrouptarget'] ?? ''),
                 ];
@@ -486,7 +487,11 @@ class test_config_normalizer {
                 'text' => (string)($state['feedbacktext_' . $index] ?? ''),
                 'templateformat' => (string)($state['feedbacktemplateformat_' . $index] ?? 'mustache'),
                 'actioncourseenabled' => !empty($state['feedbackactioncourseenabled_' . $index]) ? 1 : 0,
-                'actioncoursetarget' => (string)($state['feedbackactioncoursetarget_' . $index] ?? ''),
+                'actioncoursetarget' => array_values(array_map(
+                    'intval',
+                    (array)($state['feedbackactioncoursetarget_' . $index] ?? [])
+                )),
+                'actionmessage' => !empty($state['feedbackactionmessage_' . $index]) ? 1 : 0,
                 'actiongroupenabled' => !empty($state['feedbackactiongroupenabled_' . $index]) ? 1 : 0,
                 'actiongrouptarget' => (string)($state['feedbackactiongrouptarget_' . $index] ?? ''),
             ];
@@ -587,7 +592,8 @@ class test_config_normalizer {
                 'text' => self::extract_feedback_text($jsondata, $mainscaleid, $index),
                 'templateformat' => 'mustache',
                 'actioncourseenabled' => 0,
-                'actioncoursetarget' => '',
+                'actioncoursetarget' => [],
+                'actionmessage' => 0,
                 'actiongroupenabled' => 0,
                 'actiongrouptarget' => '',
             ];
@@ -616,7 +622,11 @@ class test_config_normalizer {
             $fields['feedbacktext_' . $fieldindex] = (string)($range['text'] ?? '');
             $fields['feedbacktemplateformat_' . $fieldindex] = (string)($range['templateformat'] ?? 'mustache');
             $fields['feedbackactioncourseenabled_' . $fieldindex] = !empty($range['actioncourseenabled']) ? 1 : 0;
-            $fields['feedbackactioncoursetarget_' . $fieldindex] = (string)($range['actioncoursetarget'] ?? '');
+            $fields['feedbackactioncoursetarget_' . $fieldindex] = array_values(array_map(
+                'intval',
+                (array)($range['actioncoursetarget'] ?? [])
+            ));
+            $fields['feedbackactionmessage_' . $fieldindex] = !empty($range['actionmessage']) ? 1 : 0;
             $fields['feedbackactiongroupenabled_' . $fieldindex] = !empty($range['actiongroupenabled']) ? 1 : 0;
             $fields['feedbackactiongrouptarget_' . $fieldindex] = (string)($range['actiongrouptarget'] ?? '');
         }
@@ -650,7 +660,8 @@ class test_config_normalizer {
                 'text' => 'Feedback for {{result.ranklabel}} in {{result.scalename}}.',
                 'templateformat' => 'mustache',
                 'actioncourseenabled' => 0,
-                'actioncoursetarget' => '',
+                'actioncoursetarget' => [],
+                'actionmessage' => 0,
                 'actiongroupenabled' => 0,
                 'actiongrouptarget' => '',
             ];

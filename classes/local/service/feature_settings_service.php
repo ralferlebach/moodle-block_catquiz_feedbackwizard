@@ -135,7 +135,26 @@ class feature_settings_service {
     }
 
     /**
-     * Return whether a target category may be used for provisioning.
+     * Return whether a course may be used as an automatic enrolment target.
+     *
+     * @param int $courseid
+     * @return bool
+     */
+    public static function is_course_enrolment_target_allowed(int $courseid): bool {
+        global $DB;
+
+        $allowed = self::get_allowed_target_categories();
+        if (empty($allowed)) {
+            return $courseid > 1;
+        }
+
+        $category = (int)$DB->get_field('course', 'category', ['id' => $courseid]);
+
+        return $courseid > 1 && in_array($category, $allowed, true);
+    }
+
+    /**
+     * Return whether a target category may be used.
      *
      * @param int $categoryid
      * @return bool
@@ -193,7 +212,7 @@ class feature_settings_service {
         }
 
         foreach (array_keys($state) as $key) {
-            if (!$courseallowed && preg_match('/^feedbackactioncourse(enabled|target)_\d+$/', $key)) {
+            if (!$courseallowed && preg_match('/^feedbackaction(course(enabled|target)|message)_\d+$/', $key)) {
                 unset($state[$key]);
             }
             if (!$groupallowed && preg_match('/^feedbackactiongroup(enabled|target)_\d+$/', $key)) {
@@ -208,7 +227,8 @@ class feature_settings_service {
                 }
                 if (!$courseallowed) {
                     $range['actioncourseenabled'] = 0;
-                    $range['actioncoursetarget'] = '';
+                    $range['actioncoursetarget'] = [];
+                    $range['actionmessage'] = 0;
                 }
                 if (!$groupallowed) {
                     $range['actiongroupenabled'] = 0;

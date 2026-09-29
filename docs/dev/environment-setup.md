@@ -446,14 +446,14 @@ Einstieg der Aktivität in `local_catquiz/classes/catquiz_handler.php`.
 ## 13. Protokoll des Referenzlaufs
 
 Durchlaufen am 2026-09-28 auf einem frischen Ubuntu-24.04-Container gegen
-`block_catquiz_feedbackwizard` 0.4.12 und Moodle 4.5.14+ (Build 20260916),
+`block_catquiz_feedbackwizard` 0.4.16 und Moodle 4.5.14+ (Build 20260916),
 PHP 8.3.6, PostgreSQL 16.15.
 
 Installierte Komponenten:
 
 | Komponente | Version |
 |---|---|
-| `block_catquiz_feedbackwizard` | 2026092801 |
+| `block_catquiz_feedbackwizard` | 2026092805 |
 | `mod_adaptivequiz` | 2026090604 (legacy) |
 | `adaptivequizcatmodel_catquiz` | 2026082704 (legacy) |
 | `local_catquiz` | 2026092616 (1.2.1, legacy) |
@@ -464,14 +464,14 @@ Ergebnis der fünf Gates:
 
 | Gate | Ergebnis |
 |---|---|
-| PHPUnit | 49 Tests, 209 Assertions, alle grün |
+| PHPUnit | 58 Tests, 238 Assertions, alle grün |
 | phpcs (Moodle-Standard) | 4 Fehler gefunden, per `phpcbf` behoben, danach sauber |
 | PHPDoc (moodlecheck) | 1 Fehler gefunden und behoben, danach sauber |
 | AMD-Bundle | Neubau identisch zum eingecheckten Stand |
 | Behat | 2 Szenarien, 17 Schritte, alle grün |
 
 Zusätzlich gegen den **`v5`-Stack** auf Moodle 5.1.7+ (Build 20260928) mit
-PHPUnit 11.5.55 geprüft: 49 Tests, 209 Assertions, Exit-Code 0 (dazu 21
+PHPUnit 11.5.55 geprüft: 58 Tests, 238 Assertions, Exit-Code 0 (dazu 21
 PHPUnit-Deprecations, siehe „Grenzen dieses Laufs"). Installierte Engine dort:
 `local_catquiz` 1.3.0 / 2026092801, `mod_adaptivequiz` 2026092700,
 `adaptivequizcatmodel_catquiz` 2026092700.
@@ -488,6 +488,41 @@ Wichtig für die Bewertung des PHPUnit-Laufs: `local_catquiz_adapter_test::
 test_save_test_configuration_persists_json` hat sich **nicht** übersprungen,
 sondern ist gegen die installierte Engine gelaufen. Der Schreibpfad über
 `\local_catquiz\testenvironment` ist damit belegt und nicht nur behauptet.
+
+### Tests müssen die Wirkung messen, nicht die Absicht
+
+Ein Test, der prüft, dass unsere eigene Konfiguration unseren eigenen
+Schlüssel enthält, ist wertlos: Er ist für einen erfundenen Schlüssel genauso
+grün wie für den richtigen. Genau so überlebte
+`feedbackactioncoursetarget_N` mehrere Lieferungen, ohne jemals eine Wirkung
+zu haben.
+
+Zwei Testarten halten das jetzt auf:
+
+- **`tests/enrolment_action_test.php`** übergibt die geschriebene
+  Konfiguration an den Auswahlcode der Engine und prüft am Ende
+  `is_enrolled()` und `groups_is_member()`. Gemessen wird die Einschreibung,
+  nicht der Schlüsselname.
+- **`tests/engine_contract_test.php`** prüft, dass **jeder** vom Writer
+  erzeugte Einstellungsschlüssel im Quellcode der installierten Engine
+  vorkommt. Ein erfundener Name fällt sofort auf, mit Nennung des Schlüssels.
+
+Beide sind gegengeprüft: Nach absichtlicher Verfälschung des Writers auf die
+alten erfundenen Schlüssel schlagen sie fehl („Failed asserting that false is
+true" bzw. mit Auflistung der unbekannten Schlüssel). Ein Test, der nicht
+fehlschlagen kann, zählt nicht als Absicherung.
+
+Derselbe Ansatz hat beim Adapter einen Engine-Defekt aufgedeckt: Der
+Cache-Purge findet statt (gemessen an zwei Caches, die
+`changesinquizsettings` als Invalidierungsereignis führen), die
+Kontext-Nachführung bei einem Skalenwechsel dagegen nicht — die Bedingung in
+`testenvironment::update_object()` vergleicht einen Wert, den sie selbst
+zwanzig Zeilen vorher überschrieben hat. Siehe
+`docs/design/issue-catquiz-contextid-on-scale-change.md`. Die Dokumentation des
+Blocks hatte das Gegenteil behauptet und ist korrigiert.
+
+Beide überspringen sich ohne installierte Engine — ein grüner Lauf ohne sie
+belegt den Schreibpfad also weiterhin nicht.
 
 ### Sechste, optionale Prüfung: der interaktive Durchlauf
 
