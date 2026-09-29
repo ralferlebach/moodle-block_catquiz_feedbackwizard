@@ -67,6 +67,7 @@ $string['field:feedbackactiongrouptarget'] = 'Range {$a} group target identifier
 $string['field:feedbackactionsummary'] = 'Range {$a} actions';
 $string['field:feedbacklabel'] = 'Range {$a} label';
 $string['field:feedbacklower'] = 'Range {$a} lower boundary';
+$string['field:feedbackpreview'] = 'Feedback texts as they will be stored';
 $string['field:feedbackrangecount'] = 'Number of fixed ranges';
 $string['field:feedbackrangeheader'] = 'Range {$a}';
 $string['field:feedbacktemplateformat'] = 'Range {$a} text template format';
@@ -125,9 +126,12 @@ $string['message:airefinementinfo'] = 'Only the feedback texts and your instruct
 $string['message:airefinementnochange'] = 'AI refinement did not change any feedback text.';
 $string['message:airefinementunavailable'] = 'No AI provider is configured for text generation on this site, so refinement is not available.';
 $string['message:courseprovisioningdisabled'] = 'Automatic course creation is disabled by the site administrator, so course follow-up actions are not offered.';
-$string['message:feedbacktokeninfo'] = 'You can already use placeholders such as '
-    . '{{result.ranklabel}}, {{result.scalename}}, {{test.name}}, and '
-    . '{{course.fullname}} in feedback texts.';
+$string['message:feedbackpreviewnote'] = 'Placeholders are resolved on saving; this is the text students will see.';
+$string['message:feedbacktokeninfo'] = 'Feedback texts may contain the placeholders '
+    . '{{result.ranklabel}}, {{result.scalename}}, {{test.name}} and '
+    . '{{course.fullname}}. They are replaced with the real values when the configuration '
+    . 'is saved, so the stored text no longer contains any placeholder. The confirmation '
+    . 'step shows the result beforehand.';
 $string['message:groupautocreatedisabled'] = 'Automatic group creation is disabled by the site administrator, so group follow-up actions are not offered.';
 $string['message:matchingcsvtemplate'] = 'CSV format: coursefield, operator, pattern, targettype, targetvalue';
 $string['message:nosubscalesavailable'] = 'No subscales are available for the currently selected main scale yet.';

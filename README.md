@@ -158,6 +158,15 @@ policy and the action log stay where an administrator can see them. Only the
 feedback text and the wording instructions are sent - no names, course data or
 results. If a response loses a placeholder, the original text is kept.
 
+Feedback placeholders are resolved on the way into the engine, not when the
+text is displayed. `local_catquiz` shows stored feedback verbatim — see
+`customscalefeedback::getfeedbackforrange()`, which only rewrites file URLs —
+so a placeholder left in the stored text would reach the student as literal
+braces. Every supported token is known at write time, because each stored text
+belongs to exactly one scale and one range. The wizard's own state snapshot
+keeps the unresolved text, so re-opening the wizard shows the placeholders
+again while students keep seeing the resolved version.
+
 Pitfall worth knowing: a PHPUnit run without the CAT engine installed skips
 exactly the tests that exercise the write path. Green without the engine means
 less than it looks like. See `docs/dev/environment-setup.md`.

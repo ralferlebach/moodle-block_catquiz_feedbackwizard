@@ -106,6 +106,48 @@ class feedback_template_service {
      * @param string $templateformat
      * @return string
      */
+    /**
+     * Replace the supported tokens with their real values.
+     *
+     * local_catquiz stores and displays feedback texts verbatim — see
+     * customscalefeedback::getfeedbackforrange(), which only rewrites file
+     * URLs. A placeholder left in the stored text would therefore be shown to
+     * the student as literal "{{result.scalename}}".
+     *
+     * Every supported token is known at write time, because each stored text
+     * belongs to exactly one scale and one feedback range, so the substitution
+     * happens once, on the way into the engine.
+     *
+     * Tokens without a value in $values are left untouched rather than
+     * silently emptied.
+     *
+     * @param string $text
+     * @param array $values Token name (without braces) => replacement value.
+     * @return string
+     */
+    public static function render_final(string $text, array $values): string {
+        if (trim($text) === '') {
+            return $text;
+        }
+
+        $rendered = $text;
+        foreach ($values as $token => $value) {
+            if (!array_key_exists($token, self::SUPPORTED_TOKENS)) {
+                continue;
+            }
+            $rendered = str_replace('{{' . $token . '}}', (string)$value, $rendered);
+        }
+
+        return $rendered;
+    }
+
+    /**
+     * Render a feedback text with the example values.
+     *
+     * @param string $text
+     * @param string $templateformat
+     * @return string
+     */
     public static function render_preview(string $text, string $templateformat): string {
         $templateformat = self::normalise_template_format($templateformat);
         if ($templateformat === 'plain') {

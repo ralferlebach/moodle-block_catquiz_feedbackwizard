@@ -446,14 +446,14 @@ Einstieg der Aktivität in `local_catquiz/classes/catquiz_handler.php`.
 ## 13. Protokoll des Referenzlaufs
 
 Durchlaufen am 2026-09-28 auf einem frischen Ubuntu-24.04-Container gegen
-`block_catquiz_feedbackwizard` 0.4.11 und Moodle 4.5.14+ (Build 20260916),
+`block_catquiz_feedbackwizard` 0.4.12 und Moodle 4.5.14+ (Build 20260916),
 PHP 8.3.6, PostgreSQL 16.15.
 
 Installierte Komponenten:
 
 | Komponente | Version |
 |---|---|
-| `block_catquiz_feedbackwizard` | 2026092800 |
+| `block_catquiz_feedbackwizard` | 2026092801 |
 | `mod_adaptivequiz` | 2026090604 (legacy) |
 | `adaptivequizcatmodel_catquiz` | 2026082704 (legacy) |
 | `local_catquiz` | 2026092616 (1.2.1, legacy) |
@@ -464,14 +464,14 @@ Ergebnis der fünf Gates:
 
 | Gate | Ergebnis |
 |---|---|
-| PHPUnit | 45 Tests, 204 Assertions, alle grün |
+| PHPUnit | 49 Tests, 209 Assertions, alle grün |
 | phpcs (Moodle-Standard) | 4 Fehler gefunden, per `phpcbf` behoben, danach sauber |
 | PHPDoc (moodlecheck) | 1 Fehler gefunden und behoben, danach sauber |
 | AMD-Bundle | Neubau identisch zum eingecheckten Stand |
 | Behat | 2 Szenarien, 17 Schritte, alle grün |
 
 Zusätzlich gegen den **`v5`-Stack** auf Moodle 5.1.7+ (Build 20260928) mit
-PHPUnit 11.5.55 geprüft: 45 Tests, 204 Assertions, Exit-Code 0 (dazu 21
+PHPUnit 11.5.55 geprüft: 49 Tests, 209 Assertions, Exit-Code 0 (dazu 21
 PHPUnit-Deprecations, siehe „Grenzen dieses Laufs"). Installierte Engine dort:
 `local_catquiz` 1.3.0 / 2026092801, `mod_adaptivequiz` 2026092700,
 `adaptivequizcatmodel_catquiz` 2026092700.

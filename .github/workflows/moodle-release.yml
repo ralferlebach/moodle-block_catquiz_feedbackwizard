@@ -59,6 +59,24 @@ jobs:
         with:
           path: plugin
 
+      - name: Reject a nested copy of the plugin
+        run: |
+          # A ZIP delivery unpacked one level too deep leaves a second, complete
+          # copy of the plugin inside itself. Everything still parses, so the
+          # first symptom is phpcs reporting every class as a duplicate and
+          # gherkinlint reporting every feature name twice - far from the cause.
+          # Fail here instead, naming the path.
+          nested=$(find plugin -mindepth 2 -name version.php -not -path 'plugin/tests/*' -print)
+          if [ -n "$nested" ]; then
+            echo "::error::The plugin contains a nested copy of itself:"
+            echo "$nested"
+            echo "The repository root IS the plugin. Copy the CONTENTS of the"
+            echo "delivered catquiz_feedbackwizard/ directory into the root,"
+            echo "not the directory itself."
+            exit 1
+          fi
+          echo "No nested plugin copy found."
+
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}

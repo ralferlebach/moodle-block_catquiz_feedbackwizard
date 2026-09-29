@@ -27,6 +27,7 @@ namespace block_catquiz_feedbackwizard\form;
 use block_catquiz_feedbackwizard\catquiz_data;
 use block_catquiz_feedbackwizard\local\service\ai_feedback_service;
 use block_catquiz_feedbackwizard\local\service\feature_settings_service;
+use block_catquiz_feedbackwizard\local\service\feedback_template_service;
 use block_catquiz_feedbackwizard\local\service\matching_config_service;
 use block_catquiz_feedbackwizard\local\service\pattern_export_service;
 use block_catquiz_feedbackwizard\local\service\pattern_import_service;
@@ -761,6 +762,16 @@ class wizard extends dynamic_form {
             $this->build_review_summary()
         );
 
+        $preview = $this->build_feedback_preview();
+        if ($preview !== '') {
+            $mform->addElement(
+                'static',
+                'feedbackpreview',
+                get_string('field:feedbackpreview', 'block_catquiz_feedbackwizard'),
+                $preview
+            );
+        }
+
         $draftid = $this->optional_param('draftid', 0, PARAM_INT);
         if ($draftid > 0) {
             $exporturl = new moodle_url('/blocks/catquiz_feedbackwizard/export.php', [
@@ -1106,7 +1117,61 @@ class wizard extends dynamic_form {
     }
 
     /**
-     * Build a compact review summary from current draft data.
+     * Render the feedback texts the way they will be stored.
+     *
+     * The engine shows stored texts verbatim, so the teacher should see the
+     * resolved text before saving rather than the placeholders they typed.
+     *
+     * @return string
+     */
+    protected function build_feedback_preview(): string {
+        $state = $this->load_draft_state();
+
+        $mainscaleid = (int)($state['mainscaleid'] ?? 0);
+        $scale = $mainscaleid > 0 ? catquiz_data::get_scale_by_id($mainscaleid) : null;
+        $selectedtest = (int)($state['selectedtest'] ?? 0);
+        $courseid = $this->optional_param('courseid', 0, PARAM_INT);
+        $record = $selectedtest > 0 ? catquiz_data::get_test_by_id($selectedtest, $courseid) : null;
+
+        $values = [
+            'result.scalename' => $scale ? format_string((string)$scale->name) : '',
+            'test.name' => $record ? format_string((string)$record->name) : '',
+            'course.fullname' => '',
+        ];
+        if ($courseid > 0) {
+            $course = get_course($courseid);
+            $values['course.fullname'] = format_string($course->fullname);
+        }
+
+        $rangecount = test_config_normalizer::normalise_feedback_range_count(
+            (int)($state['feedbackrangecount'] ?? 0)
+        );
+
+        $lines = [];
+        for ($index = 1; $index <= $rangecount; $index++) {
+            $text = trim((string)($state['feedbacktext_' . $index] ?? ''));
+            if ($text === '') {
+                continue;
+            }
+            $label = (string)($state['feedbacklabel_' . $index] ?? '');
+            $rendered = feedback_template_service::render_final(
+                $text,
+                $values + ['result.ranklabel' => $label]
+            );
+            $lines[] = html_writer::tag('strong', s($label !== '' ? $label : (string)$index)) .
+                ': ' . s($rendered);
+        }
+
+        if (empty($lines)) {
+            return '';
+        }
+
+        return html_writer::tag('div', get_string('message:feedbackpreviewnote', 'block_catquiz_feedbackwizard')) .
+            html_writer::alist($lines);
+    }
+
+    /**
+     * Build the review summary.
      *
      * @return string
      */

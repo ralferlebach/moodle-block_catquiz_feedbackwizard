@@ -65,4 +65,69 @@ final class feedback_template_service_test extends \advanced_testcase {
         $this->assertSame('Plain text', feedback_template_service::render_preview('Plain text', 'plain'));
         $this->assertSame('mustache', feedback_template_service::normalise_template_format('unsupported'));
     }
+
+    /**
+     * Real values must replace the tokens, because the engine shows the stored
+     * text verbatim.
+     *
+     * @covers ::render_final
+     * @return void
+     */
+    public function test_render_final_replaces_tokens(): void {
+        $text = 'In {{test.name}} ({{course.fullname}}) you reached {{result.ranklabel}} '
+            . 'on {{result.scalename}}.';
+
+        $rendered = feedback_template_service::render_final($text, [
+            'test.name' => 'Placement test',
+            'course.fullname' => 'Mechanics 1',
+            'result.ranklabel' => 'Needs support',
+            'result.scalename' => 'Reading',
+        ]);
+
+        $this->assertSame(
+            'In Placement test (Mechanics 1) you reached Needs support on Reading.',
+            $rendered
+        );
+        $this->assertStringNotContainsString('{{', $rendered);
+    }
+
+    /**
+     * A token without a value must survive rather than be emptied silently.
+     *
+     * @covers ::render_final
+     * @return void
+     */
+    public function test_render_final_keeps_tokens_without_value(): void {
+        $rendered = feedback_template_service::render_final(
+            'Hello {{test.name}} and {{course.fullname}}.',
+            ['test.name' => 'Placement test']
+        );
+
+        $this->assertSame('Hello Placement test and {{course.fullname}}.', $rendered);
+    }
+
+    /**
+     * Unknown tokens must not be substitutable.
+     *
+     * @covers ::render_final
+     * @return void
+     */
+    public function test_render_final_ignores_unknown_tokens(): void {
+        $rendered = feedback_template_service::render_final(
+            'Secret: {{user.email}}',
+            ['user.email' => 'someone@example.com']
+        );
+
+        $this->assertSame('Secret: {{user.email}}', $rendered);
+    }
+
+    /**
+     * An empty text must pass through untouched.
+     *
+     * @covers ::render_final
+     * @return void
+     */
+    public function test_render_final_handles_empty_text(): void {
+        $this->assertSame('', feedback_template_service::render_final('', ['test.name' => 'X']));
+    }
 }

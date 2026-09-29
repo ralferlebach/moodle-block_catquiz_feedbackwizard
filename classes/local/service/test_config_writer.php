@@ -26,6 +26,7 @@ namespace block_catquiz_feedbackwizard\local\service;
 
 use block_catquiz_feedbackwizard\catquiz_data;
 use block_catquiz_feedbackwizard\local\adapter\local_catquiz_adapter;
+use block_catquiz_feedbackwizard\local\service\feedback_template_service;
 
 /**
  * Writes wizard state back into local_catquiz_tests.
@@ -60,7 +61,7 @@ class test_config_writer {
             }
         }
 
-        $jsondata = self::apply_wizard_state($basejson, $wizardstate);
+        $jsondata = self::apply_wizard_state($basejson, $wizardstate, self::build_render_context($record));
         $catscaleid = !empty($wizardstate['mainscaleid'])
             ? (int)$wizardstate['mainscaleid']
             : (int)($record->catscaleid ?? 0);
@@ -73,9 +74,10 @@ class test_config_writer {
      *
      * @param array $jsondata
      * @param array $wizardstate
+     * @param array $rendercontext Token values fixed for this test, see build_render_context().
      * @return array
      */
-    public static function apply_wizard_state(array $jsondata, array $wizardstate): array {
+    public static function apply_wizard_state(array $jsondata, array $wizardstate, array $rendercontext = []): array {
         $mainscaleid = (int)($wizardstate['mainscaleid'] ?? 0);
         if ($mainscaleid > 0) {
             $jsondata['catscaleid'] = $mainscaleid;
@@ -130,7 +132,7 @@ class test_config_writer {
         $jsondata['completion'] = $completionenabled ? 1 : 0;
         $jsondata['completionview'] = $completionenabled ? 1 : 0;
 
-        $feedbackconfig = self::apply_feedback_state($jsondata, $wizardstate, $mainscaleid);
+        $feedbackconfig = self::apply_feedback_state($jsondata, $wizardstate, $mainscaleid, $rendercontext);
         $matchingconfig = matching_config_service::normalise_matching([
             'mode' => (string)($wizardstate['matchingmode'] ?? 'none'),
             'categoryid' => (int)($wizardstate['matchingcategoryid'] ?? 0),
@@ -184,14 +186,49 @@ class test_config_writer {
     }
 
     /**
-     * Apply fixed feedback ranges and reporting settings to the CAT JSON payload.
+     * Collect the token values that are fixed for one CAT test.
+     *
+     * @param \stdClass $record A local_catquiz_tests record.
+     * @return array
+     */
+    protected static function build_render_context(\stdClass $record): array {
+        global $DB;
+
+        $coursename = '';
+        $courseid = (int)($record->courseid ?? 0);
+        if ($courseid > 0) {
+            $course = $DB->get_record('course', ['id' => $courseid], 'id, fullname');
+            if ($course) {
+                $coursename = format_string($course->fullname);
+            }
+        }
+
+        $testname = trim((string)($record->name ?? ''));
+        if ($testname === '' && !empty($record->adaptivequizname)) {
+            $testname = (string)$record->adaptivequizname;
+        }
+
+        return [
+            'test.name' => format_string($testname),
+            'course.fullname' => $coursename,
+        ];
+    }
+
+    /**
+     * Apply the feedback part of the wizard state.
      *
      * @param array $jsondata
      * @param array $wizardstate
      * @param int $mainscaleid
+     * @param array $rendercontext Token values fixed for this test.
      * @return array
      */
-    protected static function apply_feedback_state(array &$jsondata, array $wizardstate, int $mainscaleid): array {
+    protected static function apply_feedback_state(
+        array &$jsondata,
+        array $wizardstate,
+        int $mainscaleid,
+        array $rendercontext = []
+    ): array {
         $subscaleids = array_values(array_map('intval', (array)($wizardstate['subscaleids'] ?? [])));
         $reportingstrategy = (string)($wizardstate['reportingstrategy'] ?? 'main_only');
         $range = catquiz_data::get_scale_range($mainscaleid);
@@ -219,8 +256,20 @@ class test_config_writer {
                 $rangeindex = $index + 1;
                 $jsondata['feedback_scaleid_limit_lower_' . $scaleid . '_' . $rangeindex] = (float)$feedbackrange['lower'];
                 $jsondata['feedback_scaleid_limit_upper_' . $scaleid . '_' . $rangeindex] = (float)$feedbackrange['upper'];
+                // Each stored text belongs to exactly one scale and one range,
+                // so every supported token resolves here. The engine displays
+                // the text verbatim, so an unresolved token would reach the
+                // student as literal braces.
+                $scale = catquiz_data::get_scale_by_id($scaleid);
+                $text = feedback_template_service::render_final(
+                    (string)$feedbackrange['text'],
+                    $rendercontext + [
+                        'result.ranklabel' => (string)($feedbackrange['label'] ?? ''),
+                        'result.scalename' => $scale ? (string)$scale->name : '',
+                    ]
+                );
                 $jsondata['feedbackeditor_scaleid_' . $scaleid . '_' . $rangeindex] = [
-                    'text' => (string)$feedbackrange['text'],
+                    'text' => $text,
                     'format' => '1',
                     'itemid' => '0',
                 ];
