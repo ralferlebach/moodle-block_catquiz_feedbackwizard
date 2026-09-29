@@ -1,0 +1,38 @@
+Empfohlene CI-/Qualitätsjobs für block_catquiz_feedbackwizard
+===========================================================
+
+1) PHP Lint
+   moodle-plugin-ci phplint
+
+2) Moodle Code Checker
+   moodle-plugin-ci codechecker --max-warnings 0
+
+3) PHPDoc Checker
+   moodle-plugin-ci phpdoc
+
+4) Validate
+   moodle-plugin-ci validate
+
+5) Savepoints
+   moodle-plugin-ci savepoints
+
+6) Mustache Lint
+   moodle-plugin-ci mustache
+
+7) Grunt / AMD Build
+   moodle-plugin-ci grunt --max-lint-warnings 0
+
+8) PHPUnit
+   moodle-plugin-ci phpunit
+
+9) Optional: Behat
+   moodle-plugin-ci behat --profile=chrome
+
+Projektbezogene Prüfschwerpunkte
+--------------------------------
+- Settings-Gating für optionale Features
+- Privacy-Provider gegen reale Persistenz prüfen
+- Import-/Export-Roundtrip testen
+- Wizard-Back/Next/Review-Flows mit Dynamic Form absichern
+- Keine neuen UI-Strings mit „Feedback Wizard“ in neuer Fachlogik
+- Keine direkte Business-Logik in Block-Klasse oder Mustache
