@@ -47,6 +47,32 @@ async function checkForPhpErrors(page, label) {
     }
 }
 
+/** Boost hides blocks in a collapsed drawer; open it if needed. */
+async function openBlockDrawer(page) {
+    const trigger = page.locator('.js-open-catquiz_feedbackwizard').first();
+    if (await trigger.isVisible().catch(() => false)) {
+        return;
+    }
+    const toggle = page.locator(
+        '[data-toggler="drawers"][data-target*="block"], .drawertoggle, button[data-target="#theme_boost-drawers-blocks"]'
+    ).first();
+    if (await toggle.count()) {
+        await toggle.click().catch(() => {});
+        await page.waitForTimeout(1200);
+    }
+    if (!(await trigger.isVisible().catch(() => false))) {
+        // Last resort: reveal it so the walkthrough tests the wizard, not the theme.
+        await page.evaluate(() => {
+            document.querySelectorAll('[data-region="blocks-column"], .drawer').forEach((el) => {
+                el.classList.add('show');
+                el.style.display = 'block';
+                el.style.visibility = 'visible';
+            });
+        });
+        await page.waitForTimeout(600);
+    }
+}
+
 async function shot(page, name) {
     await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: false });
 }
@@ -106,6 +132,7 @@ async function advance(page, expectedHeadingAfter) {
         await checkForPhpErrors(page, 'course page');
         await shot(page, '00-course');
 
+        await openBlockDrawer(page);
         const trigger = page.locator('.js-open-catquiz_feedbackwizard[data-action="open-wizard"]');
         const count = await trigger.count();
         log('wizard trigger elements found: ' + count);

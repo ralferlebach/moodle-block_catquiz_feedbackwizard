@@ -32,12 +32,12 @@ namespace block_catquiz_feedbackwizard\local\service;
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class feedback_template_service {
-    /** @var array Supported tokens for simple preview rendering. */
+    /** @var array Tokens the wizard resolves when writing to the engine. */
     const SUPPORTED_TOKENS = [
-        'course.fullname' => 'Example course',
-        'result.ranklabel' => 'Support',
-        'result.scalename' => 'Main scale',
-        'test.name' => 'Example CAT test',
+        'course.fullname',
+        'result.ranklabel',
+        'result.scalename',
+        'test.name',
     ];
 
     /**
@@ -56,20 +56,7 @@ class feedback_template_service {
      * @return array
      */
     public static function get_supported_tokens(): array {
-        return array_keys(self::SUPPORTED_TOKENS);
-    }
-
-    /**
-     * Build token help text for the wizard.
-     *
-     * @return string
-     */
-    public static function build_token_help_text(): string {
-        $tokens = array_map(static function (string $token): string {
-            return '{{' . $token . '}}';
-        }, self::get_supported_tokens());
-
-        return implode(', ', $tokens);
+        return self::SUPPORTED_TOKENS;
     }
 
     /**
@@ -125,32 +112,12 @@ class feedback_template_service {
 
         $rendered = $text;
         foreach ($values as $token => $value) {
-            if (!array_key_exists($token, self::SUPPORTED_TOKENS)) {
+            if (!in_array($token, self::SUPPORTED_TOKENS, true)) {
                 continue;
             }
             $rendered = str_replace('{{' . $token . '}}', (string)$value, $rendered);
         }
 
         return $rendered;
-    }
-
-    /**
-     * Render a feedback text with the example values.
-     *
-     * @param string $text
-     * @param string $templateformat
-     * @return string
-     */
-    public static function render_preview(string $text, string $templateformat): string {
-        $templateformat = self::normalise_template_format($templateformat);
-        if ($templateformat === 'plain') {
-            return $text;
-        }
-
-        $preview = $text;
-        foreach (self::SUPPORTED_TOKENS as $token => $value) {
-            $preview = preg_replace('/{{\s*' . preg_quote($token, '/') . '\s*}}/', $value, $preview);
-        }
-        return $preview;
     }
 }

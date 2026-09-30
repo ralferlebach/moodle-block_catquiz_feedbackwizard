@@ -446,14 +446,14 @@ Einstieg der Aktivität in `local_catquiz/classes/catquiz_handler.php`.
 ## 13. Protokoll des Referenzlaufs
 
 Durchlaufen am 2026-09-28 auf einem frischen Ubuntu-24.04-Container gegen
-`block_catquiz_feedbackwizard` 0.4.18 und Moodle 4.5.14+ (Build 20260916),
+`block_catquiz_feedbackwizard` 0.4.20 und Moodle 4.5.14+ (Build 20260916),
 PHP 8.3.6, PostgreSQL 16.15.
 
 Installierte Komponenten:
 
 | Komponente | Version |
 |---|---|
-| `block_catquiz_feedbackwizard` | 2026092807 |
+| `block_catquiz_feedbackwizard` | 2026092809 |
 | `mod_adaptivequiz` | 2026090604 (legacy) |
 | `adaptivequizcatmodel_catquiz` | 2026082704 (legacy) |
 | `local_catquiz` | 2026092616 (1.2.1, legacy) |
@@ -532,8 +532,11 @@ Die fünf Gates decken den Wizard-Ablauf nicht ab. Behat prüft ohne
 `@javascript` nur, ob der Einstiegspunkt erscheint; der Wizard selbst läuft
 über `core_form/modalform` und damit über JavaScript.
 
-`tests/e2e/` enthält ein Playwright-Harness, das den Wizard einmal komplett
-durchfährt. Es läuft nicht in der CI und ist kein Gate, hat aber zwei Fehler
+`tests/e2e/` enthält zwei Playwright-Durchläufe: `wizard.js` fährt die sechs
+Schritte durch, `upload.js` deckt zusätzlich die beiden Dateipfade über den
+echten Moodle-Filepicker ab (Musterimport in Schritt 2, Feedbackimport in
+Schritt 4) sowie den Download über `export.php` samt Roundtrip: Die exportierte
+Datei wird direkt wieder importiert. Es läuft nicht in der CI und ist kein Gate, hat aber zwei Fehler
 gefunden, die alle fünf Gates überlebt hatten. Details in
 `tests/e2e/README.md`.
 

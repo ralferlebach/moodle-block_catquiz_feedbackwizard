@@ -62,10 +62,44 @@ NOT-NULL-Verletzung ab — siehe
 `add_block_at_end_of_default_region()` an `user_can_addto()` mit der wenig
 sprechenden Meldung „Cannot add block".
 
+## Zwei Durchläufe
+
+`wizard.js` fährt die sechs Schritte ohne Upload durch. `upload.js` deckt die
+Dateipfade ab, die weder PHPUnit noch Behat erreichen: den Feedback-Import in
+Schritt 4 und den Musterimport in Schritt 2, beide über den echten
+Moodle-Filepicker — also über die YUI-Dialogbox, den Draft-Bereich und die
+Draft-Item-ID, nicht über ein einfaches `input[type=file]`.
+
+`upload.js` deckt zusätzlich den Export ab: Der Link im Bestätigungsschritt
+wird geklickt, die Datei heruntergeladen, als JSON geparst und geprüft —
+Formatmarke, Version, die importierten Bezeichnungen, keine Instanzbezüge, und
+dass die Platzhalter **erhalten** bleiben. Ein Muster ist eine Vorlage, keine
+Ausgabe; aufgelöste Platzhalter wären dort ein Fehler.
+
+Danach wird genau diese heruntergeladene Datei wieder importiert. Damit hängen
+Export und Import an einem Faden: Was das Plugin schreibt, muss es auch
+wieder lesen können.
+
+Gegengeprüft ist beides:
+
+| Sabotage | Meldung |
+|---|---|
+| `validate_pattern_upload()` zurück auf `get_file_content()` | Wizard bleibt in Schritt 2 stehen, Zeitüberschreitung |
+| Export löst Platzhalter auf | „the export resolved the placeholders; a pattern must keep them" |
+| Export nimmt eine `draftid` mit | „the export leaks the instance reference" |
+
 ## Durchlauf
 
 ```bash
 COURSE_ID=4 node blocks/catquiz_feedbackwizard/tests/e2e/wizard.js
+COURSE_ID=4 node blocks/catquiz_feedbackwizard/tests/e2e/upload.js
+```
+
+Vorher die User-Tours abschalten, sonst fangen sie die Klicks ab:
+
+```bash
+php -r 'define("CLI_SCRIPT",true); require("config.php");
+$DB->set_field("tool_usertours_tours", "enabled", 0, []); purge_all_caches();'
 ```
 
 Umgebungsvariablen: `MOODLE_URL`, `MOODLE_USER`, `MOODLE_PASS`, `COURSE_ID`,

@@ -875,7 +875,7 @@ class wizard extends dynamic_form {
                 $errors['scenario'] = get_string('required');
             }
             if (($data['wizardmode'] ?? '') === 'import') {
-                $error = $this->validate_pattern_upload();
+                $error = $this->validate_pattern_upload($data['patternfile'] ?? 0);
                 if ($error !== '') {
                     $errors['patternfile'] = $error;
                 }
@@ -1077,7 +1077,7 @@ class wizard extends dynamic_form {
                     $merged['testid'] = $selectedtest;
                 }
             } else if ($wizardmode === 'import') {
-                $json = (string)$this->get_file_content('patternfile');
+                $json = $this->read_draft_file($data->patternfile ?? 0);
                 if ($json !== '') {
                     $pattern = pattern_import_service::parse($json);
                     $imported = pattern_import_service::to_wizard_state($pattern);
@@ -1107,7 +1107,7 @@ class wizard extends dynamic_form {
         }
 
         if ($step === 4) {
-            $csv = (string)$this->get_file_content('feedbackimportfile');
+            $csv = $this->read_draft_file($data->feedbackimportfile ?? 0);
             if (trim($csv) !== '') {
                 $rows = feedback_import_service::parse($csv);
                 $merged = feedback_import_service::apply_to_state($merged, $rows);
@@ -1459,12 +1459,57 @@ class wizard extends dynamic_form {
     }
 
     /**
+     * Read an uploaded file straight from its draft area.
+     *
+     * moodleform::get_file_content() does not work from validation() in this
+     * dynamic form: measured behaviour is that the uploaded pattern is
+     * rejected as missing and the wizard never leaves step 2. Its first line
+     * is a guard on is_validated(), which during validation() has not been
+     * set yet — but the exact mechanism was not confirmed, only the effect.
+     *
+     * The draft item id is part of the submitted data anyway, so reading the
+     * draft area directly is both shorter and independent of that guard.
+     * tests/e2e/upload.js covers this path; it fails when the form is put back
+     * on get_file_content().
+     *
+     * @param mixed $draftitemid The value of the filepicker element.
+     * @return string The file content, or an empty string.
+     */
+    protected function read_draft_file($draftitemid): string {
+        global $USER;
+
+        $draftitemid = (int)$draftitemid;
+        if ($draftitemid < 1) {
+            return '';
+        }
+
+        $fs = get_file_storage();
+        $files = $fs->get_area_files(
+            \context_user::instance($USER->id)->id,
+            'user',
+            'draft',
+            $draftitemid,
+            'id DESC',
+            false
+        );
+
+        if (empty($files)) {
+            return '';
+        }
+
+        $file = reset($files);
+
+        return (string)$file->get_content();
+    }
+
+    /**
      * Validate the uploaded settings pattern.
      *
+     * @param mixed $draftitemid The value of the patternfile element.
      * @return string An error message, or an empty string when the file is fine.
      */
-    protected function validate_pattern_upload(): string {
-        $json = (string)$this->get_file_content('patternfile');
+    protected function validate_pattern_upload($draftitemid): string {
+        $json = $this->read_draft_file($draftitemid);
 
         if (trim($json) === '') {
             return get_string('error:patternfilerequired', 'block_catquiz_feedbackwizard');

@@ -52,18 +52,15 @@ final class feedback_template_service_test extends \advanced_testcase {
     }
 
     /**
-     * Test simple preview rendering.
+     * An unsupported template format must fall back to mustache.
      *
      * @covers ::normalise_template_format
-     * @covers ::render_preview
      * @return void
      */
-    public function test_render_preview(): void {
-        $mustache = 'Status: {{ result.ranklabel }}';
-
-        $this->assertSame('Status: Support', feedback_template_service::render_preview($mustache, 'mustache'));
-        $this->assertSame('Plain text', feedback_template_service::render_preview('Plain text', 'plain'));
+    public function test_normalise_template_format(): void {
         $this->assertSame('mustache', feedback_template_service::normalise_template_format('unsupported'));
+        $this->assertSame('plain', feedback_template_service::normalise_template_format('plain'));
+        $this->assertSame('mustache', feedback_template_service::normalise_template_format('mustache'));
     }
 
     /**
