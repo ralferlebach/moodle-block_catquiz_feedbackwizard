@@ -277,10 +277,13 @@ Thank you for your understanding.
 Translating this plugin
 -----------------------
 
-This Moodle plugin is currently provided with an English language pack only. A
-German language pack is planned but not yet part of the plugin. Translations
-into other languages must be managed through AMOS (https://lang.moodle.org),
-where they will become part of Moodle's official language pack.
+This Moodle plugin is provided with English and German language packs.
+Translations into other languages must be managed through AMOS
+(https://lang.moodle.org), where they will become part of Moodle's official
+language pack.
+
+Both packs are kept in step by `tests/lang_packs_test.php`, which fails when a
+string is missing from one of them or when a translation loses a placeholder.
 
 Thank you for supporting the global Moodle community!
 
