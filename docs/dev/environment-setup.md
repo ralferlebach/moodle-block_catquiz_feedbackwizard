@@ -447,14 +447,14 @@ Einstieg der Aktivität in `local_catquiz/classes/catquiz_handler.php`.
 ## 13. Protokoll des Referenzlaufs
 
 Durchlaufen am 2026-09-28 auf einem frischen Ubuntu-24.04-Container gegen
-`block_catquiz_feedbackwizard` 0.4.21 und Moodle 4.5.14+ (Build 20260916),
+`block_catquiz_feedbackwizard` 0.4.22 und Moodle 4.5.14+ (Build 20260916),
 PHP 8.3.6, PostgreSQL 16.15.
 
 Installierte Komponenten:
 
 | Komponente | Version |
 |---|---|
-| `block_catquiz_feedbackwizard` | 2026092810 |
+| `block_catquiz_feedbackwizard` | 2026092811 |
 | `mod_adaptivequiz` | 2026090604 (legacy) |
 | `adaptivequizcatmodel_catquiz` | 2026082704 (legacy) |
 | `local_catquiz` | 2026092616 (1.2.1, legacy) |
@@ -471,11 +471,21 @@ Ergebnis der fünf Gates:
 | AMD-Bundle | Neubau identisch zum eingecheckten Stand |
 | Behat | 2 Szenarien, 17 Schritte, alle grün |
 
-Zusätzlich gegen den **`v5`-Stack** auf Moodle 5.1.7+ (Build 20260928) mit
-PHPUnit 11.5.55 geprüft: 71 Tests, 268 Assertions, Exit-Code 0 (dazu 21
-PHPUnit-Deprecations, siehe „Grenzen dieses Laufs"). Installierte Engine dort:
-`local_catquiz` 1.3.0 / 2026092801, `mod_adaptivequiz` 2026092700,
-`adaptivequizcatmodel_catquiz` 2026092700.
+Zusätzlich gegen den **`v5`-Stack** auf beiden Zweigen geprüft, die die
+CI-Matrix fährt:
+
+| Moodle | PHPUnit | Ergebnis | Engine |
+|---|---|---|---|
+| 5.1.7+ (Build 20260928) | 11.5.55 | 71 Tests, 268 Assertions, Exit 0 | `local_catquiz` 1.3.0 / 2026092801 |
+| 5.2.3+ (Build 20260928) | 11.5.55 | 71 Tests, 268 Assertions, Exit 0 | `local_catquiz` 1.3.0 / 2026092904 |
+
+Die `v5`-Engine zieht laufend nach; die Versionsnummern oben sind der Stand des
+jeweiligen Laufs, nicht eine Festlegung.
+
+Moodle 5.2 verlangt laut `admin/environment.xml` mindestens PHP 8.3. Die
+CI-Matrix fährt diesen Zweig mit PHP 8.4, der Referenzlauf oben lief mit 8.3 —
+beide sind zulässig, die Kombination 5.2 mit 8.3 ist in der CI also nicht
+abgedeckt.
 
 `local_catquiz_adapter_test::test_save_test_configuration_persists_json` ist in
 beiden Stacks **gelaufen**, nicht übersprungen. Der Schreibpfad über
